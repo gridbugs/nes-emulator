@@ -93,6 +93,7 @@ Machine.prototype.start = function() {
 }
 
 Machine.prototype.step = function() {
+    console.debug(this.cpu.pc);
     var opcode = this.ram[this.cpu.pc++];
     console.debug(hex(opcode));
     var instr = Instruction.decode(opcode);

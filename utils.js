@@ -1,4 +1,14 @@
 
+/* computes the two's compliment of an 8 bit integer
+ * e.g. twos_compliment_8(255) == -1
+ */
+var twos_complement_8 = function(x) {
+    if (x & 1<<7) {
+        x = -((255 - x) + 1); // flip bits and add 1 and negate
+    }
+    return x;
+}
+
 /* convert a number to a hex string */
 var hex = function(n) {
     if (n.constructor == String) {

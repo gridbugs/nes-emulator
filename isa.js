@@ -278,7 +278,7 @@ Instruction.decode_branch = function(opcode) {
     var y = (opcode >> 5) & 1;
     return {
         instruction: Instruction.branch[y][xx],
-        addressing_mode: AddressingMode.IMP
+        addressing_mode: AddressingMode.REL
     };
 }
 
