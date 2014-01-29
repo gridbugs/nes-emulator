@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script type="application/x-javascript" src="jquery.min.js"></script>
+<script type="application/x-javascript" src="underscore-min.js"></script>
+<script type="application/x-javascript" src="math.min.js"></script>
+
+<script type="application/x-javascript" src="utils.js"></script>
+<script type="application/x-javascript" src="nes_file.js"></script>
+<script type="application/x-javascript" src="isa.js"></script>
+<script type="application/x-javascript" src="machine.js"></script>
+<script type="application/x-javascript" src="client.js"></script>
+
+<style>
+* {
+    margin: 0px;
+    padding: 0px;
+    overflow:hidden;
+}
+canvas {
+}
+#memory {
+    font-family: monospace;
+    font-size:14pt;
+    float: left;
+}
+
+#instructions {
+    font-family: monospace;
+    font-size:14pt;
+    float: left;
+    margin-left: 20px;
+}
+
+#memory > tbody > tr > td {
+    width: 1.5em;
+}
+#container {
+    position:absolute;
+    top:0px;
+    bottom:0px;
+    left:0px;
+    right:0px;
+    overflow:scroll;
+}
+</style>
+</head>
+<body>
+<div id="container">
+<table id="memory"></table>
+<div id="instructions"></div>
+</div>
+</body>
+</html>
