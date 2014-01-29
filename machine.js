@@ -7,6 +7,13 @@ function CPU() {
     this.ac = 0;    // Accumulator
 
 }
+
+/* analagous to connecting a memory configuration to the
+ * address and data busses on the 6502 */
+CPU.prototype.connect_memory_map = function(mm) {
+    this.memory = mm;
+}
+
 // convenient functions for setting program counter
 CPU.prototype.set_pcl = function(val) {
     this.pc |= val;
