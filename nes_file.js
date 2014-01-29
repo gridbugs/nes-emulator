@@ -1,3 +1,5 @@
+/* Functions relating to opening and parsing a .nes file */
+
 var get_header = function(arr) {
     var header = new Object();
     var checksum = take(arr, 4).map(function(c){return String.fromCharCode(c)}).join('');

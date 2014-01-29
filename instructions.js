@@ -1,8 +1,12 @@
+/* This file contains the definition of the instructions
+ * and addressing modes used by the 6502. It contains functions
+ * and data structures relating to decoding instructions
+ * and addressing modes from opcodes.
+ */
 
 /* These are really just namespaces */
 function Instruction() {}
 function AddressingMode() {}
-function ISA() {}
 
 Instruction.fromOpCode = function(opCode) {
     var aaa = opCode >> 5;

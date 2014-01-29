@@ -4,7 +4,7 @@
  */
 var twos_complement_8 = function(x) {
     if (x & 1<<7) {
-        x = -((255 - x) + 1); // flip bits and add 1 and negate
+        x = -((255 - x) + 1); // flip bits, add 1 and negate
     }
     return x;
 }
