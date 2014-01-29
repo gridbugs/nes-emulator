@@ -15,6 +15,7 @@ $(function() {
             /* initialize the ISA data structures */
             AddressingMode.init();
             Instruction.init();
+            Emulator.init();
 
             /* copy each rom bank into its own array */
             rom = get_rom_banks(header, data_arr);
@@ -29,6 +30,8 @@ $(function() {
             machine.load_rom_bank(rom[0], 0x8000);
             machine.load_rom_bank(rom[1], 0xc000);
 
+            /* begin the emulation */
+            machine.start();
         }
     });
 });
@@ -42,5 +45,5 @@ function display_rom_bank(bank) {
         buf=buf.concat("<td>" + hex(bank[i]) + "</td>");
     }
     buf=buf.concat("<tr/>");
-    $('#memory').append(buf);
+    $('#memory').html(buf);
 }

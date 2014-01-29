@@ -135,8 +135,7 @@ Instruction.init = function() {
             /* the table is initialized to true, so now cross off all the
              * invalid combinations */
             var w = well_defined_aaabbbcc; // get a shorter variable name
-            console.debug(w);
-            w[STA][ABS] = false;
+            w[STA][IMM] = false;
             var tmp = [ASL, ROL, LSR, ROR, STX, DEC, INC];
             for (var i in tmp) {
                 w[tmp[i]][IMM] = false;
@@ -145,7 +144,7 @@ Instruction.init = function() {
             for (var i in tmp) {
                 w[tmp[i]][ACC];
             }
-            w[STX][ABS] = false;
+            w[STX][ABS_X] = false;
             w[BIT][IMM] = false
             w[BIT][ZP_X] = false;
             w[BIT][ABS_X] = false;
@@ -279,7 +278,7 @@ Instruction.decode_branch = function(opcode) {
     var y = (opcode >> 5) & 1;
     return {
         instruction: Instruction.branch[y][xx],
-        addressing_mode: AddressingMode.NOT_APPLICABLE
+        addressing_mode: AddressingMode.IMP
     };
 }
 
@@ -302,7 +301,7 @@ Instruction.decode_other = function(opcode) {
     }
     return {
         instruction: instr,
-        addressing_mode: AddressingMode.NOT_APPLICABLE
+        addressing_mode: AddressingMode.IMP
     };
 }
 
@@ -332,7 +331,6 @@ AddressingMode.init = function() {
         "ZP_I_X",   // Zero Page Indirect Indexed with X
         "ZP_I_Y",   // Zero Page Indirect Indexed with Y
         "NUM_ADDRESSING_MODES",
-        "NOT_APPLICABLE" // appears after the count since it's not an addressing mode
     ]);
 
     with (AddressingMode) {
@@ -364,9 +362,14 @@ AddressingMode.init = function() {
                 7: ABS_X
             }
         }
+
     }
+
 }
 
 
 
-
+var itos = function(i) {
+    return Instruction.names[i.instruction] + ", " +
+           AddressingMode.names[i.addressing_mode];
+}
