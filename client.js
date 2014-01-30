@@ -1,6 +1,6 @@
 var nes;
 $(function() {
-    load_nes_file("Legend of Zelda.nes", function(data) {
+    load_binary_file("Legend of Zelda.nes", function(data) {
 
         /* decode the file into an array of bytes */
         var data_arr = str_to_ascii(data);
