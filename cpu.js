@@ -24,20 +24,14 @@ function CPU() {
  * byte it points to.
  */
 CPU.prototype.stack_push = function(data) {
-    console.debug("PUSHING: " + hex(data));
     this.memory.write(this.sp | 0x0100, data);
     this.sp--;
 }
 
 // this operation is currently refered to as "popping"
-CPU.prototype.stack_pull = function(data) {
-    if (this.sp == 0xff) {
-        console.debug("STACK OVERFLOW");
-    }
+CPU.prototype.stack_pull = function() {
     this.sp++;
-    var ret = this.memory.read(this.sp | 0x0100);
-    console.debug("PULLING: " + hex(ret));
-    return ret;
+    return this.memory.read(this.sp | 0x0100);
 }
 
 /* analagous to connecting a memory configuration to the

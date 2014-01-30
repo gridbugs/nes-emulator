@@ -162,7 +162,6 @@ Emulator.init = function() {
             this.pc++;
             this.stack_push(this.get_pch()); // push high byte first
             this.stack_push(this.get_pcl()); // push low byte
-            console.debug("pushed PC: " + hex(this.pc));
             this.pc = addr;
         }
 
@@ -201,7 +200,6 @@ Emulator.init = function() {
              */
             this.set_pcl(this.stack_pull()); // get low byte
             this.set_pch(this.stack_pull()); // get high byte
-            console.debug("PULLED PC: " + hex(this.pc));
             this.pc++;
         }
 
