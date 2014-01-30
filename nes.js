@@ -30,6 +30,8 @@ NES.prototype.load_rom = function(data_arr) {
     /* connect the rom to the memory manager */
     this.cpu.memory.connect_prgrom0(this.rom[0]);
     this.cpu.memory.connect_prgrom1(this.rom[1]);
+
+    return true;
 }
 
 NES.prototype.init = function() {

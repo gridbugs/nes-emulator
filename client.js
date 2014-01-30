@@ -17,12 +17,13 @@ $(function() {
         nes = new NES();
 
         /* connect the nes to the rom */
-        nes.load_rom(data_arr);
+        if (nes.load_rom(data_arr)) {
 
-        display_rom_bank(nes.rom[1]);
+            display_rom_bank(nes.rom[1]);
 
-        /* initialize the emulated device */
-        nes.init();
+            /* initialize the emulated device */
+            nes.init();
+        }
     });
 });
 
