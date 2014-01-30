@@ -50,16 +50,4 @@ var get_rom_banks = function(header, arr) {
     }
     return ret;
 }
-var d;
-
-var load_nes_file = function(name, f) {
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.onload = function() {
-        f(this.response);
-    };
-    xmlhttp.open("GET", name, true);
-    xmlhttp.overrideMimeType("text/plain; charset=x-user-defined");
-    xmlhttp.send();
-}
-
 

@@ -52,6 +52,8 @@ var take = function(arr, n) {
     return ret;
 }
 
+/* takes a 1 byte unsigned integer and returns
+ * its binary representation as an array of 1s and 0s */
 var to_binary_8 = function(n) {
     var ret = new Array(8);
     for (var i = 0;i!==8;++i) {
@@ -64,6 +66,8 @@ var to_binary_8 = function(n) {
     return ret;
 }
 
+/* takes an array of 1s and 0s and returns
+ * the number they represented in binary */
 var from_binary_8 = function(arr) {
     var ret = 0;
     for (var i = 0;i!==8;++i) {
@@ -74,6 +78,8 @@ var from_binary_8 = function(arr) {
     return ret;
 }
 
+/* returns true iff the array has only
+ * elements whose values are 0 */
 var all_zeroes = function(arr) {
     for (var i in arr) {
         if (arr[i] != 0) {
@@ -93,3 +99,18 @@ var enumerate = function(namespace, values) {
         eval(namespace + ".names[" + i + "] = '" + value + "';");
     }
 }
+
+/* loads a file asynchronously without the constraint of characters being encoded
+ * in unicode as this disallows certain values to appear in bytes
+ * in the file */
+var load_binary_file = function(name, f) {
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.onload = function() {
+        f(this.response);
+    };
+    xmlhttp.open("GET", name, true);
+    xmlhttp.overrideMimeType("text/plain; charset=x-user-defined");
+    xmlhttp.send();
+}
+
+
