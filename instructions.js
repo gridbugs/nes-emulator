@@ -8,18 +8,6 @@
 function Instruction() {}
 function AddressingMode() {}
 
-Instruction.fromOpCode = function(opCode) {
-    var aaa = opCode >> 5;
-    var bbb = (opCode >> 2) & 7;
-    var cc = opCode & 3;
-    if (Instruction.aaabbbcc_instructions[cc] &&
-        Instruction.aaabbbcc_instructions[cc][aaa]) {
-        return new Instruction(Instruction.aaabbbcc_instructions[cc][aaa], "not implemented");
-    } else {
-        return Instruction.INVALID;
-    }
-}
-
 Instruction.init = function() {
     enumerate("Instruction", [
         // aaabbbcc Instructions
@@ -298,6 +286,9 @@ Instruction.decode_JSR = function(opcode) {
     };
 }
 
+/* decode any instruction not handled by one of the
+ * other decoding functions. These are all 1 byte
+ * and thus have "implied" as their addressing mode. */
 Instruction.decode_other = function(opcode) {
     var instr = Instruction.single_byte[opcode];
     if (instr == undefined) {
