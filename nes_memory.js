@@ -42,8 +42,8 @@ NESMemoryConfiguration.prototype.connect_prgrom1 = function(rom) {
 
 NESMemoryConfiguration.prototype.write = function(address, data) {
     /* Write to RAM */
-    if (address >= 0x0000 && address < 0x0800) {
-        this.work_ram[address] = data;
+    if (address >= 0x0000 && address < 0x2000) {
+        this.work_ram[address % 0x0800] = data;
     } else if (address >= 0x6000 && address < 0x8000) {
         this.sram[address - 0x6000] = data;
     }
@@ -52,8 +52,7 @@ NESMemoryConfiguration.prototype.write = function(address, data) {
 NESMemoryConfiguration.prototype.read = function(address) {
     /* Work RAM or one of its mirrors */
     if (address >= 0x0000 && address < 0x2000) {
-        var work_ram_address = address % 0x0800;
-        return this.work_ram[work_ram_address];
+        return this.work_ram[address % 0x0800];
     }
 
     /* SRAM */

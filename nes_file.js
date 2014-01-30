@@ -62,16 +62,4 @@ var load_nes_file = function(name, f) {
     xmlhttp.send();
 }
 
-/* converts a string into an array of ascii codes. For non-ascii
- * characters it appears they get |'d with 0xf700, so just & with
- * 0xff to get rid of the high byte.
- */
-var str_to_ascii = function(str) {
-    var chars = str.split('');
-    var codes = [];
-    for (var i in chars) {
-        var code = ascii(chars[i]);
-        codes.push(code & 0xff);
-    }
-    return codes;
-}
+

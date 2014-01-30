@@ -1,4 +1,17 @@
 
+/* converts a string into an array of ascii codes. For non-ascii
+ * characters it appears they get |'d with 0xf700, so just & with
+ * 0xff to get rid of the high byte.
+ */
+var str_to_ascii = function(str) {
+    var chars = str.split('');
+    var codes = [];
+    for (var i in chars) {
+        var code = ascii(chars[i]);
+        codes.push(code & 0xff);
+    }
+    return codes;
+}
 /* computes the two's compliment of an 8 bit integer
  * e.g. twos_compliment_8(255) == -1
  */

@@ -1,37 +1,23 @@
-
-var rom;
-var machine;
+var nes;
 $(function() {
     load_nes_file("Legend of Zelda.nes", function(data) {
 
         /* decode the file into an array of bytes */
         var data_arr = str_to_ascii(data);
 
-        /* parse the nes header */
-        var header = get_header(data_arr);
+        /* Initialize the data structures that make up the emulator */
+        AddressingMode.init();
+        Instruction.init();
+        Emulator.init();
 
-        if (header.valid) {
+        /* create a nes object */
+        nes = new NES();
 
-            /* initialize the ISA data structures */
-            AddressingMode.init();
-            Instruction.init();
-            Emulator.init();
+        /* connect the nes to the rom */
+        nes.load_rom(data_arr);
 
-            /* copy each rom bank into its own array */
-            rom = get_rom_banks(header, data_arr);
-
-            /* print out the first rom's contents */
-            display_rom_bank(rom[0]);
-
-            /* initialize the emulated machine */
-            machine = new CPU();
-            machine.connect_memory_map(new NESMemoryConfiguration());
-            machine.memory.connect_prgrom0(rom[0]);
-            machine.memory.connect_prgrom1(rom[1]);
-
-            /* begin the emulation */
-            machine.start();
-        }
+        /* begin the emulation */
+        nes.start();
     });
 });
 
