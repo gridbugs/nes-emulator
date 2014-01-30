@@ -5,12 +5,18 @@
 function NES() {
     this.cpu = new CPU();
     this.cpu.connect_memory_map(new NESMemoryConfiguration());
+    this.cpu.memory.connect_ppu(new NESPPU());
+}
+
+/* Initialize data structures to do with the NES */
+NES.init = function() {
+    NESPPU.init();
 }
 
 /* takes an array of numbers representing the bytes in the .nes
  * ROM file */
 NES.prototype.load_rom = function(data_arr) {
-        
+
     /* parse the nes header */
     this.header = get_header(data_arr);
 
@@ -26,7 +32,12 @@ NES.prototype.load_rom = function(data_arr) {
     this.cpu.memory.connect_prgrom1(this.rom[1]);
 }
 
+NES.prototype.init = function() {
+    this.cpu.init();
+}
+
 NES.prototype.start = function() {
+    this.cpu.memory.ppu.stabalize(400);
     this.cpu.start();
 }
 

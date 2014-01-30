@@ -29,8 +29,6 @@ function NESMemoryConfiguration() {
     /* 0x8000 - 0xbfff: PRG-ROM 0
      * 0xc000 - 0xffff: PRG-ROM 1
      * */
-
-
 }
 
 NESMemoryConfiguration.prototype.connect_prgrom0 = function(rom) {
@@ -39,6 +37,10 @@ NESMemoryConfiguration.prototype.connect_prgrom0 = function(rom) {
 NESMemoryConfiguration.prototype.connect_prgrom1 = function(rom) {
     this.prg_rom1 = rom;
 }
+NESMemoryConfiguration.prototype.connect_ppu = function(ppu) {
+    this.ppu = ppu;
+}
+
 
 NESMemoryConfiguration.prototype.write = function(address, data) {
     /* Write to RAM */
@@ -46,6 +48,9 @@ NESMemoryConfiguration.prototype.write = function(address, data) {
         this.work_ram[address % 0x0800] = data;
     } else if (address >= 0x6000 && address < 0x8000) {
         this.sram[address - 0x6000] = data;
+    } else if (address >= 0x2000 && address < 0x2008) {
+        /* interface with the ppu */
+        this.ppu.write(address - 0x2000, data);
     }
 }
 
@@ -66,5 +71,10 @@ NESMemoryConfiguration.prototype.read = function(address) {
     }
     if (address >= 0xc000 && address <= 0xffff) {
         return this.prg_rom1[address - 0xc000];
+    }
+
+    /* PPU */
+    if (address >= 0x2000 && address < 0x4000) {
+        return this.ppu.read((address - 0x2000) % 8);
     }
 }

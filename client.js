@@ -10,14 +10,19 @@ $(function() {
         Instruction.init();
         Emulator.init();
 
+        /* initialize the NES specific data structures */
+        NES.init();
+
         /* create a nes object */
         nes = new NES();
 
         /* connect the nes to the rom */
         nes.load_rom(data_arr);
 
-        /* begin the emulation */
-        nes.start();
+        display_rom_bank(nes.rom[1]);
+
+        /* initialize the emulated device */
+        nes.init();
     });
 });
 

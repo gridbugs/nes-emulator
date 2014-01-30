@@ -35,6 +35,13 @@ Emulator.init = function() {
             return twos_complement_8(offset) + this.pc;
         }
 
+        r[ACC] = function() {
+            /* Accumulator:
+             * The value comes from the accumulator
+             */
+            return this.ac;
+        }
+
         /* This array will hold functions emulating storing data
          * in memory. */
         AddressingMode.write_data = [];
@@ -47,6 +54,25 @@ Emulator.init = function() {
             var addr = this.little_endian_2_byte_at(this.pc);
             this.pc += 2;
             this.memory.write(addr, data);
+        }
+
+        w[ACC] = function(data) {
+            /* Accumulator:
+             * Store the value in the accumulator.
+             */
+            this.ac = data;
+        }
+
+        /* This array will hold functions emulating getting an
+         * address following an instruction. */
+        AddressingMode.read_address = [];
+        var a = AddressingMode.read_address;
+        a[ABS] = function() {
+            /* Absolute:
+             * The address is literally stored after the current
+             * instruction in little endian format
+             */
+            return this.little_endian_2_byte_at(this.pc);
         }
     }
 
@@ -108,6 +134,81 @@ Emulator.init = function() {
             if (this.sr & 1<<CPU.SR_ZERO) {
                 this.pc = addr;
             }
+        }
+
+        e[ORA] = function(am) {
+            /* ORA: Bitwise or the accumulator with a value
+             * and store the result in the accumulator
+             */
+            this.ac |= r[am].call(this);
+            this.sr_respond(this.ac);
+        }
+
+        e[JSR] = function(am) {
+            /* JSR: Jump Subroutine
+             * Only works in absolute mode (ABS).
+             * 1. Push the first address after the 2 byte argument onto the stack
+             * 2. Set the PC to be the little endian address following the JSR instruction
+             */
+
+            /* the pc points the the first byte after the JSR instruction so
+             * it's fine to just do this */
+            var addr = a[am].call(this);
+
+            /* pc now points to the byte after the JSR instruction
+             * We're supposed to push the address
+             * of the last byte of the JSR instruction, so we need to increase
+             * the PC by 1 */
+            this.pc++;
+            this.stack_push(this.get_pch()); // push high byte first
+            this.stack_push(this.get_pcl()); // push low byte
+            console.debug("pushed PC: " + hex(this.pc));
+            this.pc = addr;
+        }
+
+        e[LSR] = function(am) {
+            /* LSR: Logical Shift Right by 1
+             * Shift either the accumulator or a byte in memory
+             * one to the right, padding the most significant byte
+             * with a 0.
+             */
+            var value = r[am].call(this);
+
+            // set the carry flag in the sr to the lsb of the value
+            this.sr |= ((value & 1) << CPU.SR_CARRY);
+
+            // the negative flag is always reset
+            this.sr_clear(CPU.SR_NEGATIVE);
+
+            // shift the value 1 to the right
+            value >>= 1;
+
+            // set the zero bit if necessary
+            if (value == 0) {
+                this.sr_set(CPU.SR_ZERO);
+            } else {
+                this.sr_clear(CPU.SR_ZERO);
+            }
+
+            // write out the new value
+            w[am].call(this, value);
+        }
+
+        e[RTS] = function(am) {
+            /* RTS: Return from Subroutine
+             * Get the pc off the stack (little endian),
+             * increment it, and change the pc to its value
+             */
+            this.set_pcl(this.stack_pull()); // get low byte
+            this.set_pch(this.stack_pull()); // get high byte
+            console.debug("PULLED PC: " + hex(this.pc));
+            this.pc++;
+        }
+
+        e[JMP] = function(am) {
+            /* JMP: Jump to a new location
+             */
+            this.pc = a[am].call(this);
         }
     }
 }
