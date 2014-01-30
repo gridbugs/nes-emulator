@@ -14,7 +14,7 @@ Emulator.init = function() {
              * The byte following the instruction contains
              * the data.
              */
-            return this.ram[this.cpu.pc++];
+            return this.memory.read(this.pc++);
         }
         r[ABS] = function() {
             /* Absolute:
@@ -22,17 +22,17 @@ Emulator.init = function() {
              * a little endian address. Read the byte at that
              * address.
              */
-            var addr = this.little_endian_2_byte_at(this.cpu.pc);
-            this.cpu.pc += 2;
-            return this.ram[addr];
+            var addr = this.little_endian_2_byte_at(this.pc);
+            this.pc += 2;
+            return this.memory.read(addr);
         }
         r[REL] = function() {
             /* Relative:
              * 2's complement add the 1 byte following the instruction
              * to the PC (don't set the PC to this value, just return it).
              */
-            var offset = this.ram[this.cpu.pc++];
-            return twos_complement_8(offset) + this.cpu.pc;
+            var offset = this.memory.read(this.pc++);
+            return twos_complement_8(offset) + this.pc;
         }
 
         /* This array will hold functions emulating storing data
@@ -44,9 +44,9 @@ Emulator.init = function() {
              * The two bytes following the instruction represent
              * a little endian address. Store the data there.
              */
-            var addr = this.little_endian_2_byte_at(this.cpu.pc);
-            this.cpu.pc += 2;
-            this.ram[addr] = data;
+            var addr = this.little_endian_2_byte_at(this.pc);
+            this.pc += 2;
+            this.memory.write(addr, data);
         }
     }
 
@@ -61,43 +61,43 @@ Emulator.init = function() {
             /* LDA: Load Accumulator
              * Stores a value in the accumulator
              */
-            this.cpu.ac = r[am].call(this);
-            this.cpu.sr_respond(this.cpu.ac);
+            this.ac = r[am].call(this);
+            this.sr_respond(this.ac);
         }
 
         e[SEI] = function(am) {
             /* SEI: Set Interrupt-disable bit in SR */
-            this.cpu.sr |= 1<<CPU.SR_INTERRUPT_DISABLE;
+            this.sr |= 1<<CPU.SR_INTERRUPT_DISABLE;
         }
 
         e[CLD] = function(am) {
             /* CLD: Clear the Decimal-mode bit in SR */
-            this.cpu.sr &= (~(1<<CPU.SR_DECIMAL));
+            this.sr &= (~(1<<CPU.SR_DECIMAL));
         }
 
         e[STA] = function(am) {
             /* STA: Store the Accumulator in memory */
-            w[am].call(this, this.cpu.ac);
+            w[am].call(this, this.ac);
         }
 
         e[LDX] = function(am) {
             /* LDX: Load a value into X */
-            this.cpu.x = r[am].call(this);
-            this.cpu.sr_respond(this.cpu.x);
+            this.x = r[am].call(this);
+            this.sr_respond(this.x);
         }
 
         e[TXS] = function(am) {
             /* TXS: Transfer the value in X to SR */
-            this.cpu.sp = this.cpu.x;
-            this.cpu.sr_respond(this.cpu.sp);
+            this.sp = this.x;
+            this.sr_respond(this.sp);
         }
 
         e[AND] = function(am) {
             /* AND: Bitwise and the accumulator with a value
              * and store the result in the accumulator
              */
-            this.cpu.ac &= r[am].call(this);
-            this.cpu.sr_respond(this.cpu.ac);
+            this.ac &= r[am].call(this);
+            this.sr_respond(this.ac);
         }
 
         e[BEQ] = function(am) {
@@ -105,8 +105,8 @@ Emulator.init = function() {
              * bit of SR is set
              */
             var addr = r[am].call(this);
-            if (this.cpu.sr & 1<<CPU.SR_ZERO) {
-                this.cpu.pc = addr;
+            if (this.sr & 1<<CPU.SR_ZERO) {
+                this.pc = addr;
             }
         }
     }

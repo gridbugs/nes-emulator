@@ -24,11 +24,10 @@ $(function() {
             display_rom_bank(rom[0]);
 
             /* initialize the emulated machine */
-            machine = new Machine();
-
-            /* copy the first 2 rom banks into the machine's ram */
-            machine.load_rom_bank(rom[0], 0x8000);
-            machine.load_rom_bank(rom[1], 0xc000);
+            machine = new CPU();
+            machine.connect_memory_map(new NESMemoryConfiguration());
+            machine.memory.connect_prgrom0(rom[0]);
+            machine.memory.connect_prgrom1(rom[1]);
 
             /* begin the emulation */
             machine.start();
