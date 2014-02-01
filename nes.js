@@ -27,9 +27,8 @@ NES.prototype.load_rom = function(data_arr) {
     /* copy each rom bank into its own array */
     this.rom = get_rom_banks(this.header, data_arr);
 
-    /* connect the rom to the memory manager */
-    this.cpu.memory.connect_prgrom0(this.rom[0]);
-    this.cpu.memory.connect_prgrom1(this.rom[1]);
+    /* connect the memory mapper */
+    this.cpu.memory.connect_mapper(new Mapper.types[this.header.rom_mapper_type](this.rom));
 
     return true;
 }

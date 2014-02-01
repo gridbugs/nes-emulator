@@ -31,16 +31,15 @@ function NESMemoryConfiguration() {
      * */
 }
 
-NESMemoryConfiguration.prototype.connect_prgrom0 = function(rom) {
-    this.prg_rom0 = rom;
-}
-NESMemoryConfiguration.prototype.connect_prgrom1 = function(rom) {
-    this.prg_rom1 = rom;
-}
 NESMemoryConfiguration.prototype.connect_ppu = function(ppu) {
     this.ppu = ppu;
 }
+NESMemoryConfiguration.prototype.connect_mapper = function(mapper) {
+    this.mapper = mapper;
 
+    /* initialize any mapper-specific data structures */
+    this.mapper.constructor.init();
+}
 
 NESMemoryConfiguration.prototype.write = function(address, data) {
     /* Write to RAM */
@@ -51,6 +50,9 @@ NESMemoryConfiguration.prototype.write = function(address, data) {
     } else if (address >= 0x2000 && address < 0x2008) {
         /* interface with the ppu */
         this.ppu.write(address - 0x2000, data);
+    } else if (address >= 0x8000 && address <= 0xffff) {
+        /* writing to mapper chip */
+        this.mapper.write(address, data);
     }
 }
 
@@ -66,11 +68,8 @@ NESMemoryConfiguration.prototype.read = function(address) {
     }
 
     /* ROM */
-    if (address >= 0x8000 && address < 0xc000) {
-        return this.prg_rom0[address - 0x8000];
-    }
-    if (address >= 0xc000 && address <= 0xffff) {
-        return this.prg_rom1[address - 0xc000];
+    if (address >= 0x8000 && address <= 0xffff) {
+        return this.mapper.read(address);
     }
 
     /* PPU */

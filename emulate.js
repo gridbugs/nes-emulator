@@ -42,6 +42,15 @@ Emulator.init = function() {
             return this.ac;
         }
 
+        r[ZP] = function() {
+            /* Zero Page:
+             * The single byte pointed to by the pc is the low byte
+             * of the address in zero page (so the high byte is 0).
+             */
+            var addr = this.memory.read(this.pc++);
+            return this.memory.read(addr);
+        }
+
         /* This array will hold functions emulating storing data
          * in memory. */
         AddressingMode.write_data = [];
@@ -61,6 +70,24 @@ Emulator.init = function() {
              * Store the value in the accumulator.
              */
             this.ac = data;
+        }
+
+        w[ZP] = function(data) {
+            /* Zero Page:
+             * The single byte pointed to by the pc is the low byte
+             * of the address in zero page (so the high byte is 0).
+             */
+            var addr = this.memory.read(this.pc++);
+            this.memory.write(addr, data);
+        }
+
+        w[ZP_I_Y] = function(data) {
+            /* Zero Page indexed by Y:
+             * The given address is added to the value in Y and the
+             * result desired address.
+             */
+            var addr = this.memory.read(this.pc++) + this.y;
+            this.memory.write(addr, data);
         }
 
         /* This array will hold functions emulating getting an
@@ -207,6 +234,102 @@ Emulator.init = function() {
             /* JMP: Jump to a new location
              */
             this.pc = a[am].call(this);
+        }
+
+        e[CMP] = function(am) {
+            /* CMP: Compare memory with accumulator
+             * This subtracts the value in memory from the accumulator
+             * and adjusts the sr flags as follows (without changing
+             * other register).
+             */
+
+            var result = this.ac - r[am].call(this);
+            this.sr_assign(result & 1<<7, CPU.NEGATIVE);
+            this.sr_assign(result == 0, CPU.ZERO);
+            this.sr_assign(result >= 0, CPU.SR_CARRY);
+        }
+
+        e[BNE] = function(am) {
+            /* BEQ: Jump to the relative address if the zero
+             * bit of SR is clear
+             */
+            var addr = r[am].call(this);
+            if (!(this.sr & 1<<CPU.SR_ZERO)) {
+                this.pc = addr;
+            }
+        }
+
+        e[LDY] = function(am) {
+            /* LDX: Load a value into X */
+            this.y = r[am].call(this);
+            this.sr_respond(this.y);
+        }
+
+        e[CLC] = function(am) {
+            /* CLC: Clear Carry Flag */
+            this.sr &= (~(1<<CPU.SR_CARRY));
+        }
+
+        e[ADC] = function(am) {
+            /* ADC: Add value in memory to the accumulator with carry
+             */
+            this.ac += twos_complement_8(r[am].call(this));
+            if (this.sr & 1<<CPU.SR_CARRY) {
+                this.ac++;
+            }
+
+            /* updated flags:
+             * carry is set iff the sum exceeds 255 or a decimal add exceeds 99 */
+            this.sr_assign(((this.sr & 1<<CPU.SR_DECIMAL) && (this.ac > 99)) || this.ac > 255, CPU.SR_CARRY);
+
+            /* overflow is set iff the result exceeds 127 or is less than -128 */
+            this.sr_assign(this.ac > 127 || this.ac < -128, CPU.SR_OVERFLOW);
+
+            /* it makes sense to crop the result to 1 byte here */
+            this.ac = to_twos_complement_8(this.ac);
+
+            /* negavite flag is set if the result has bit 7 set */
+            this.sr_assign(this.ac & 1<<7, CPU.SR_NEGATIVE);
+
+            /* zero flag is set if the result is zero */
+            this.sr_assign(this.ac == 0, CPU.SR_ZERO);
+
+        }
+
+        e[SEC] = function(am) {
+            /* SEC: Set Carry Flag */
+            this.sr |= 1<<CPU.SR_CARRY;
+        }
+
+        e[DEY] = function(am) {
+            /* DEY: Decrement the value in y */
+            this.y = to_twos_complement_8(this.y - 1);
+
+            this.sr_assign(this.y == 0, CPU.SR_ZERO);
+            this.sr_assign(this.y & 1<<7, CPU.SR_NEGATIVE);
+        }
+
+        e[CPY] = function(am) {
+            /* CMP: Compare memory with accumulator
+             * This subtracts the value in memory from the accumulator
+             * and adjusts the sr flags as follows (without changing
+             * other register).
+             */
+
+            var result = this.ac - r[am].call(this);
+
+            this.sr_assign(result & 1<<7, CPU.NEGATIVE);
+            this.sr_assign(result == 0, CPU.ZERO);
+            this.sr_assign(result >= 0, CPU.SR_CARRY);
+        }
+
+        e[DEC] = function(am) {
+            /* DEC: Decrement a value in memory */
+            var value = r[am].call(this);
+            value = to_twos_complement_8(value - 1);
+            w[am].call(this, value);
+            this.sr_assign(value == 0, CPU.SR_ZERO);
+            this.sr_assign(value & 1<<7, CPU.SR_NEGATIVE);
         }
     }
 }

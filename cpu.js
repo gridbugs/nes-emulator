@@ -10,7 +10,7 @@ function CPU() {
     this.frequency = 1790000; // hertz
 
     // ms delay
-    this.delay = 20;
+    this.delay = 0.001;
 }
 
 /* Notes about the 6502 stack:
@@ -61,6 +61,14 @@ CPU.prototype.sr_clear = function(bit_no) {
     this.sr &= (~(1<<bit_no));
 }
 
+CPU.prototype.sr_assign = function(bit, value) {
+    if (value) {
+        this.sr_set(bit);
+    } else {
+        this.sr_clear(bit);
+    }
+}
+
 // Sets/Clears bits in the SR in response to the value of x
 CPU.prototype.sr_respond = function(x) {
     if (x & 1<<7) {
@@ -102,11 +110,14 @@ CPU.prototype.init = function() {
 }
 
 CPU.prototype.debug_step = function() {
-    console.debug(this.pc);
+    buffer_pc(this.pc);
     var opcode = this.memory.read(this.pc++);
-    console.debug(hex(opcode));
+    buffer_encoded_instr(hex(opcode));
     var instr = Instruction.decode(opcode);
-    console.debug(itos(instr));
+    buffer_instr(pad_str(AddressingMode.names[instr.addressing_mode], 6) + "   " + Instruction.names[instr.instruction]);
+    buffer_args(this, instr.addressing_mode);
+
+    print_instr();
     Instruction.emulate[instr.instruction].call(this, instr.addressing_mode);
 }
 

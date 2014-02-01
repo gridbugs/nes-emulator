@@ -10,6 +10,8 @@ $(function() {
         Instruction.init();
         Emulator.init();
 
+        Debug.init();
+
         /* initialize the NES specific data structures */
         NES.init();
 
@@ -19,7 +21,7 @@ $(function() {
         /* connect the nes to the rom */
         if (nes.load_rom(data_arr)) {
 
-            display_rom_bank(nes.rom[1]);
+            display_rom_bank(nes.rom[7], 0xc000);
 
             /* initialize the emulated device */
             nes.init();
@@ -27,14 +29,3 @@ $(function() {
     });
 });
 
-function display_rom_bank(bank) {
-    var buf = "<tr><td>0:</td>";
-    for (var i in bank) {
-        if (i > 0 && i % 20 == 0) {
-            buf=buf.concat("<tr/><tr><td>" + i + ":</td>");
-        }
-        buf=buf.concat("<td>" + hex(bank[i]) + "</td>");
-    }
-    buf=buf.concat("<tr/>");
-    $('#memory').html(buf);
-}

@@ -1,3 +1,10 @@
+var pad_str = function(str, len) {
+    var padding = "";
+    for (var i = 0;i<len - str.length;++i) {
+        padding += " ";
+    }
+    return str + padding;
+}
 
 /* converts a string into an array of ascii codes. For non-ascii
  * characters it appears they get |'d with 0xf700, so just & with
@@ -12,6 +19,13 @@ var str_to_ascii = function(str) {
     }
     return codes;
 }
+
+var to_twos_complement_8 = function(x) {
+    if (x < 0) {
+        x = (0xffff + x) + 1;
+    }
+    return x & 0xff;
+}
 /* computes the two's compliment of an 8 bit integer
  * e.g. twos_compliment_8(255) == -1
  */
@@ -24,11 +38,16 @@ var twos_complement_8 = function(x) {
 
 /* convert a number to a hex string */
 var hex = function(n) {
+    var str;
     if (n.constructor == String) {
-        return parseInt(n).toString(16);
+        str = parseInt(n).toString(16);
     } else {
-        return n.toString(16);
+        str = n.toString(16);
     }
+    if (str.length == 1) {
+        str = "0" + str;
+    }
+    return str;
 }
 
 /* for characters that aren't in the ascii table, this returns
