@@ -4,6 +4,19 @@ function Emulator(){}
 Emulator.init = function() {
     with (AddressingMode) {
 
+        AddressingMode.pc_incr = [];
+        var p = AddressingMode.pc_incr;
+        p[IMM] = 1;
+        p[ABS] = 2;
+        p[REL] = 1;
+        p[ACC] = 0;
+        p[ZP] = 1;
+        p[ZP_X] = 1;
+        p[ZP_I_X] = 1;
+        p[ZP_Y] = 1;
+        p[ZP_I_Y] = 1;
+
+
         /* This array will hold functions emulating the getting of data
          * for the various addressing modes. These will be called with
          * "this" refering to a machine. */
@@ -14,7 +27,7 @@ Emulator.init = function() {
              * The byte following the instruction contains
              * the data.
              */
-            return this.memory.read(this.pc++);
+            return this.memory.read(this.pc);
         }
         r[ABS] = function() {
             /* Absolute:
@@ -23,7 +36,6 @@ Emulator.init = function() {
              * address.
              */
             var addr = this.little_endian_2_byte_at(this.pc);
-            this.pc += 2;
             return this.memory.read(addr);
         }
         r[REL] = function() {
@@ -31,8 +43,8 @@ Emulator.init = function() {
              * 2's complement add the 1 byte following the instruction
              * to the PC (don't set the PC to this value, just return it).
              */
-            var offset = this.memory.read(this.pc++);
-            return twos_complement_8(offset) + this.pc;
+            var offset = this.memory.read(this.pc);
+            return twos_complement_8(offset) + this.pc + 1;
         }
 
         r[ACC] = function() {
@@ -47,7 +59,7 @@ Emulator.init = function() {
              * The single byte pointed to by the pc is the low byte
              * of the address in zero page (so the high byte is 0).
              */
-            var addr = this.memory.read(this.pc++);
+            var addr = this.memory.read(this.pc);
             return this.memory.read(addr);
         }
 
@@ -56,7 +68,7 @@ Emulator.init = function() {
              * The given address is added to the value in X and the
              * result desired address.
              */
-            var addr = this.memory.read(this.pc++) + this.x;
+            var addr = this.memory.read(this.pc) + this.x;
             return this.memory.read(addr);
         }
 
@@ -68,7 +80,7 @@ Emulator.init = function() {
              * The high byte of this address is stored in the following byte. This
              * is the relevant address for the instruction.
              */
-            var i_addr = this.memory.read(this.pc++); // indirect address
+            var i_addr = this.memory.read(this.pc); // indirect address
             var addr = this.little_endian_2_byte_at(i_addr) + this.x;
             return this.memory.read(addr);
         }
@@ -85,7 +97,6 @@ Emulator.init = function() {
              * a little endian address. Store the data there.
              */
             var addr = this.little_endian_2_byte_at(this.pc);
-            this.pc += 2;
             this.memory.write(addr, data);
         }
 
@@ -101,7 +112,7 @@ Emulator.init = function() {
              * The single byte pointed to by the pc is the low byte
              * of the address in zero page (so the high byte is 0).
              */
-            var addr = this.memory.read(this.pc++);
+            var addr = this.memory.read(this.pc);
             this.memory.write(addr, data);
         }
 
@@ -110,7 +121,7 @@ Emulator.init = function() {
              * The given address is added to the value in Y and the
              * result desired address.
              */
-            var addr = this.memory.read(this.pc++) + this.y;
+            var addr = this.memory.read(this.pc) + this.y;
             this.memory.write(addr, data);
         }
 
@@ -122,7 +133,7 @@ Emulator.init = function() {
              * The high byte of this address is stored in the following byte. This
              * is the relevant address for the instruction.
              */
-            var i_addr = this.memory.read(this.pc++); // indirect address
+            var i_addr = this.memory.read(this.pc); // indirect address
             var addr = this.little_endian_2_byte_at(i_addr) + this.y;
             this.memory.write(addr, data);
         }
@@ -153,6 +164,7 @@ Emulator.init = function() {
              */
             this.ac = r[am].call(this);
             this.sr_respond(this.ac);
+            this.pc += p[am];
         }
 
         e[SEI] = function(am) {
@@ -168,12 +180,14 @@ Emulator.init = function() {
         e[STA] = function(am) {
             /* STA: Store the Accumulator in memory */
             w[am].call(this, this.ac);
+            this.pc += p[am];
         }
 
         e[LDX] = function(am) {
             /* LDX: Load a value into X */
             this.x = r[am].call(this);
             this.sr_respond(this.x);
+            this.pc += p[am];
         }
 
         e[TXS] = function(am) {
@@ -188,6 +202,7 @@ Emulator.init = function() {
              */
             this.ac &= r[am].call(this);
             this.sr_respond(this.ac);
+            this.pc += p[am];
         }
 
         e[BEQ] = function(am) {
@@ -197,6 +212,8 @@ Emulator.init = function() {
             var addr = r[am].call(this);
             if (this.sr & 1<<CPU.SR_ZERO) {
                 this.pc = addr;
+            } else {
+                this.pc += p[am];
             }
         }
 
@@ -206,6 +223,7 @@ Emulator.init = function() {
              */
             this.ac |= r[am].call(this);
             this.sr_respond(this.ac);
+            this.pc += p[am];
         }
 
         e[JSR] = function(am) {
@@ -255,6 +273,7 @@ Emulator.init = function() {
 
             // write out the new value
             w[am].call(this, value);
+            this.pc += p[am];
         }
 
         e[RTS] = function(am) {
@@ -284,6 +303,7 @@ Emulator.init = function() {
             this.sr_assign(result & 1<<7, CPU.NEGATIVE);
             this.sr_assign(result == 0, CPU.ZERO);
             this.sr_assign(result >= 0, CPU.SR_CARRY);
+            this.pc += p[am];
         }
 
         e[BNE] = function(am) {
@@ -293,6 +313,8 @@ Emulator.init = function() {
             var addr = r[am].call(this);
             if (!(this.sr & 1<<CPU.SR_ZERO)) {
                 this.pc = addr;
+            } else {
+                this.pc += p[am];
             }
         }
 
@@ -300,6 +322,7 @@ Emulator.init = function() {
             /* LDX: Load a value into X */
             this.y = r[am].call(this);
             this.sr_respond(this.y);
+            this.pc += p[am];
         }
 
         e[CLC] = function(am) {
@@ -331,6 +354,7 @@ Emulator.init = function() {
             /* zero flag is set if the result is zero */
             this.sr_assign(this.ac == 0, CPU.SR_ZERO);
 
+            this.pc += p[am];
         }
 
         e[SEC] = function(am) {
@@ -358,6 +382,8 @@ Emulator.init = function() {
             this.sr_assign(result & 1<<7, CPU.NEGATIVE);
             this.sr_assign(result == 0, CPU.ZERO);
             this.sr_assign(result >= 0, CPU.SR_CARRY);
+
+            this.pc += p[am];
         }
 
         e[DEC] = function(am) {
@@ -367,6 +393,8 @@ Emulator.init = function() {
             w[am].call(this, value);
             this.sr_assign(value == 0, CPU.SR_ZERO);
             this.sr_assign(value & 1<<7, CPU.SR_NEGATIVE);
+
+            this.pc += p[am];
         }
     }
 }
