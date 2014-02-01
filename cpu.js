@@ -113,7 +113,9 @@ CPU.prototype.debug_step = function() {
     buffer_pc(this.pc);
     var opcode = this.memory.read(this.pc++);
     buffer_encoded_instr(hex(opcode));
+    console.debug(opcode);
     var instr = Instruction.decode(opcode);
+    console.debug(instr);
     buffer_instr(pad_str(AddressingMode.names[instr.addressing_mode], 6) + "   " + Instruction.names[instr.instruction]);
     buffer_args(this, instr.addressing_mode);
 

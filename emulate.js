@@ -51,6 +51,30 @@ Emulator.init = function() {
             return this.memory.read(addr);
         }
 
+        r[ZP_X] = function() {
+            /* Zero Page indexed by X:
+             * The given address is added to the value in X and the
+             * result desired address.
+             */
+            var addr = this.memory.read(this.pc++) + this.x;
+            return this.memory.read(addr);
+        }
+
+        r[ZP_I_X] = function(data) {
+            /* Zero Page indirect indexed by X:
+             * The byte following the instruction is the low byte of an address in
+             * the zero page (so the high byte is zero).
+             * At this address there is the low byte of a second address.
+             * The high byte of this address is stored in the following byte. This
+             * is the relevant address for the instruction.
+             */
+            var i_addr = this.memory.read(this.pc++); // indirect address
+            var addr = this.little_endian_2_byte_at(i_addr) + this.x;
+            return this.memory.read(addr);
+        }
+
+
+
         /* This array will hold functions emulating storing data
          * in memory. */
         AddressingMode.write_data = [];
@@ -81,12 +105,25 @@ Emulator.init = function() {
             this.memory.write(addr, data);
         }
 
-        w[ZP_I_Y] = function(data) {
+        w[ZP_Y] = function(data) {
             /* Zero Page indexed by Y:
              * The given address is added to the value in Y and the
              * result desired address.
              */
             var addr = this.memory.read(this.pc++) + this.y;
+            this.memory.write(addr, data);
+        }
+
+        w[ZP_I_Y] = function(data) {
+            /* Zero Page indirect indexed by Y:
+             * The byte following the instruction is the low byte of an address in
+             * the zero page (so the high byte is zero).
+             * At this address there is the low byte of a second address.
+             * The high byte of this address is stored in the following byte. This
+             * is the relevant address for the instruction.
+             */
+            var i_addr = this.memory.read(this.pc++); // indirect address
+            var addr = this.little_endian_2_byte_at(i_addr) + this.y;
             this.memory.write(addr, data);
         }
 

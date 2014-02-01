@@ -65,8 +65,18 @@ Debug.init = function() {
         Debug.instr_buffer += ("$" + hex(cpu.memory.read(cpu.pc)));
         Debug.encoded += (" " + hex(cpu.memory.read(cpu.pc)));
     }
-    Debug.r[AddressingMode.ZP_I_Y] = function(cpu) {
+    Debug.r[AddressingMode.ZP_Y] = function(cpu) {
         Debug.instr_buffer += ("$" + hex(cpu.memory.read(cpu.pc)) + ",Y");
         Debug.encoded += (" " + hex(cpu.memory.read(cpu.pc)));
     }
+
+    Debug.r[AddressingMode.ZP_I_Y] = function(cpu) {
+        Debug.instr_buffer += ("($" + hex(cpu.memory.read(cpu.pc)) + "),Y");
+        Debug.encoded += (" " + hex(cpu.memory.read(cpu.pc)));
+    }
+    Debug.r[AddressingMode.ZP_I_X] = function(cpu) {
+        Debug.instr_buffer += ("($" + hex(cpu.memory.read(cpu.pc)) + ",X)");
+        Debug.encoded += (" " + hex(cpu.memory.read(cpu.pc)));
+    }
+
 }
