@@ -15,6 +15,8 @@ Emulator.init = function() {
         p[ZP_I_X] = 1;
         p[ZP_Y] = 1;
         p[ZP_I_Y] = 1;
+        p[ABS_Y] = 2;
+        p[ABS_X] = 2;
 
 
         /* This array will hold functions emulating the getting of data
@@ -135,6 +137,15 @@ Emulator.init = function() {
              */
             var i_addr = this.memory.read(this.pc); // indirect address
             var addr = this.little_endian_2_byte_at(i_addr) + this.y;
+            this.memory.write(addr, data);
+        }
+
+        w[ABS_Y] = function(data) {
+            /* Absolute Indexed with Y:
+             * The value in Y is added to the 2 bytes after the instruction
+             * to compute the address relevant to the instruction.
+             */
+            var addr = this.little_endian_2_byte_at(this.pc) + this.y;
             this.memory.write(addr, data);
         }
 
@@ -300,8 +311,8 @@ Emulator.init = function() {
              */
 
             var result = this.ac - r[am].call(this);
-            this.sr_assign(result & 1<<7, CPU.NEGATIVE);
-            this.sr_assign(result == 0, CPU.ZERO);
+            this.sr_assign(result & 1<<7, CPU.SR_NEGATIVE);
+            this.sr_assign(result == 0, CPU.SR_ZERO);
             this.sr_assign(result >= 0, CPU.SR_CARRY);
             this.pc += p[am];
         }
@@ -365,10 +376,32 @@ Emulator.init = function() {
         e[DEY] = function(am) {
             /* DEY: Decrement the value in y */
             this.y = to_twos_complement_8(this.y - 1);
+            
+            buffer_instr(" Y = " + this.y);
 
             this.sr_assign(this.y == 0, CPU.SR_ZERO);
             this.sr_assign(this.y & 1<<7, CPU.SR_NEGATIVE);
         }
+
+        e[DEX] = function(am) {
+            /* DEX: Decrement the value in y */
+            this.x = to_twos_complement_8(this.x - 1);
+            
+            buffer_instr(" X = " + this.x);
+
+            this.sr_assign(this.x == 0, CPU.SR_ZERO);
+            this.sr_assign(this.x & 1<<7, CPU.SR_NEGATIVE);
+        }
+
+
+        e[INY] = function(am) {
+            /* INY: Increment the value in y */
+            this.y = to_twos_complement_8(this.y + 1);
+
+            this.sr_assign(this.y == 0, CPU.SR_ZERO);
+            this.sr_assign(this.y & 1<<7, CPU.SR_NEGATIVE);
+        }
+
 
         e[CPY] = function(am) {
             /* CMP: Compare memory with accumulator
@@ -377,10 +410,10 @@ Emulator.init = function() {
              * other register).
              */
 
-            var result = this.ac - r[am].call(this);
+            var result = this.y - r[am].call(this);
 
-            this.sr_assign(result & 1<<7, CPU.NEGATIVE);
-            this.sr_assign(result == 0, CPU.ZERO);
+            this.sr_assign(result & 1<<7, CPU.SR_NEGATIVE);
+            this.sr_assign(result == 0, CPU.SR_ZERO);
             this.sr_assign(result >= 0, CPU.SR_CARRY);
 
             this.pc += p[am];
@@ -393,8 +426,44 @@ Emulator.init = function() {
             w[am].call(this, value);
             this.sr_assign(value == 0, CPU.SR_ZERO);
             this.sr_assign(value & 1<<7, CPU.SR_NEGATIVE);
-
+            buffer_instr("acc = " + this.ac);
             this.pc += p[am];
         }
+
+        e[BCS] = function(am) {
+            /* BCS: Branch on carry set
+             */
+            var addr = r[am].call(this);
+            if (this.sr & 1<<CPU.SR_CARRY) {
+                this.pc = addr;
+            } else {
+                this.pc += p[am];
+            }
+        }
+
+        e[STX] = function(am) {
+            /* STX: Store X in memory */
+            w[am].call(this, this.x);
+            this.pc += p[am];
+        }
+
+        e[STY] = function(am) {
+            /* STX: Store X in memory */
+            w[am].call(this, this.y);
+            this.pc += p[am];
+        }
+
+        e[BCC] = function(am) {
+            /* BCC: Branch on carry clear
+             */
+            var addr = r[am].call(this);
+            if (!(this.sr & 1<<CPU.SR_CARRY)) {
+                this.pc = addr;
+            } else {
+                this.pc += p[am];
+            }
+        }
+
+
     }
 }

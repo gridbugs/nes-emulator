@@ -1,4 +1,7 @@
 var pad_str = function(str, len) {
+    if (str.constructor != String) {
+        str = str.toString();
+    }
     var padding = "";
     for (var i = 0;i<len - str.length;++i) {
         padding += " ";

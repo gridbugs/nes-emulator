@@ -10,7 +10,20 @@ function CPU() {
     this.frequency = 1790000; // hertz
 
     // ms delay
-    this.delay = 0.001;
+    this.delay = 0;
+
+    this.break_points = [];
+
+    this.break_counts = []; // values of this.num_instr on which to break
+    this.num_instr = 0; // the number of instructions executed
+}
+
+CPU.prototype.add_breakpoint = function(p) {
+    this.break_points.push(p);
+}
+
+CPU.prototype.add_break_count = function(p) {
+    this.break_counts.push(p);
 }
 
 /* Notes about the 6502 stack:
@@ -61,7 +74,7 @@ CPU.prototype.sr_clear = function(bit_no) {
     this.sr &= (~(1<<bit_no));
 }
 
-CPU.prototype.sr_assign = function(bit, value) {
+CPU.prototype.sr_assign = function(value, bit) {
     if (value) {
         this.sr_set(bit);
     } else {
@@ -110,17 +123,22 @@ CPU.prototype.init = function() {
 }
 
 CPU.prototype.debug_step = function() {
-    buffer_pc(this.pc);
+    buffer_pc(pad_str(this.num_instr, 7) + pad_str(hex(this.pc), 4));
     var opcode = this.memory.read(this.pc++);
     buffer_encoded_instr(hex(opcode));
-    console.debug(opcode);
+    //console.debug(opcode);
     var instr = Instruction.decode(opcode);
-    console.debug(instr);
+    //console.debug(instr);
     buffer_instr(pad_str(AddressingMode.names[instr.addressing_mode], 6) + "   " + Instruction.names[instr.instruction]);
     buffer_args(this, instr.addressing_mode);
 
-    print_instr();
+    if (!Instruction.emulate[instr.instruction]) {
+        print_instr();
+    }
+
     Instruction.emulate[instr.instruction].call(this, instr.addressing_mode);
+    print_instr_to_buffer();
+    this.num_instr++;
 }
 
 
@@ -134,7 +152,29 @@ CPU.prototype.start = function() {
     var cpu = this;
     var tick = function() {
         cpu.debug_step();
-        setTimeout(tick, cpu.delay);
+        if (cpu.break_points.indexOf(cpu.pc) == -1 &&
+            cpu.break_counts.indexOf(cpu.num_instr) == -1) {
+            setTimeout(tick, cpu.delay);
+        } else {
+            console.debug("breakpoint: " + hex(cpu.pc) + " after " + cpu.num_instr + " instructions");
+        }
     }
     tick();
+}
+
+CPU.prototype.run = function(n) {
+    while(true) {
+        this.debug_step();
+        if (n != undefined && n-- == 0) {
+            break;
+        }
+        if (!(this.break_points.indexOf(this.pc) == -1 &&
+            this.break_counts.indexOf(this.num_instr) == -1)) {
+            print_buffer();
+            console.debug("breakpoint: " + hex(this.pc) + " after " + this.num_instr + " instructions");
+            return false;
+        }
+    }
+    print_buffer();
+    return true;
 }

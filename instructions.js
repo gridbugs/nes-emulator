@@ -134,7 +134,7 @@ Instruction.init = function() {
             }
             tmp = [STX, LDX, DEC, INC];
             for (var i in tmp) {
-                w[tmp[i]][ACC];
+                w[tmp[i]][ACC] = false;
             }
             w[STX][ABS_X] = false;
             w[BIT][IMM] = false

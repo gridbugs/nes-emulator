@@ -21,11 +21,8 @@ NESPPU.init = function() {
     with (NESPPU) {
         /* any special things that need to happen when
          * a register is written to */
-        NESPPU.write = [];
-        var w = NESPPU.write;
-        w[PPUCTRL] = function(data) {
-            this.registers[PPUCTRL] = data;
-        }
+        NESPPU.post_write = [];
+        var w = NESPPU.post_write;
 
         /* any special things that need to happen when
          * a register is read from */
@@ -43,17 +40,23 @@ NESPPU.init = function() {
 }
 
 NESPPU.prototype.write = function(offset, data) {
-    NESPPU.write[offset].call(this, data);
+    this.registers[offset] = data;
+    if (NESPPU.post_write[offset]) {
+        NESPPU.post_write[offset].call(this, data);
+    }
 }
 
 NESPPU.prototype.read = function(offset) {
     return NESPPU.read[offset].call(this);
 }
 
+NESPPU.prototype.set_status_bit_7 = function() {
+    this.registers[NESPPU.PPUSTATUS] |= 1<<7;
+}
+
 NESPPU.prototype.stabalize = function(time, then) {
     var ppu = this;
     var set_status_bit_7 = function() {
-        console.debug("------------------------- SETTING STATUS BIT 7");
         ppu.registers[NESPPU.PPUSTATUS] |= 1<<7;
     }
 
@@ -61,7 +64,6 @@ NESPPU.prototype.stabalize = function(time, then) {
 
         switch(rem) {
         case 2:
-            console.debug("------------------------- WAITING");
             setTimeout(delayed_pulse, time, 1);
             break;
         case 1:

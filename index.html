@@ -20,12 +20,13 @@
 <script type="application/x-javascript" src="client.js"></script>
 
 <style>
-* {
-    margin: 0px;
-    padding: 0px;
-    overflow:hidden;
-}
 canvas {
+}
+#current {
+    font-family: monospace;
+    font-size:14pt;
+    margin-bottom: 20px;
+    padding: 10px;
 }
 #memory {
     font-family: monospace;
@@ -55,6 +56,8 @@ canvas {
 </head>
 <body>
 <div id="container">
+<div id="current">
+</div>
 <table id="memory"></table>
 <div id="instructions"></div>
 </div>

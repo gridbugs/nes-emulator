@@ -26,9 +26,9 @@ MMC1.LOW_PRGROM_AREA = 2;
 MMC1.PRGROM_16K_SWITCHING = 3;
 
 MMC1.prototype.write = function(addr, data) {
-
     if (data & 1<<7) {
-        this.registers[(addr>>13)&3] = 0;
+        var idx = (addr>>13)&3;
+        this.registers[idx] = 0;
     } else {
 
         /* this means the shift register is full */

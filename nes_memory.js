@@ -42,6 +42,9 @@ NESMemoryConfiguration.prototype.connect_mapper = function(mapper) {
 }
 
 NESMemoryConfiguration.prototype.write = function(address, data) {
+
+    buffer_instr("     *(0x" + hex(address) + ") = 0x" + hex(data));
+
     /* Write to RAM */
     if (address >= 0x0000 && address < 0x2000) {
         this.work_ram[address % 0x0800] = data;
@@ -53,27 +56,28 @@ NESMemoryConfiguration.prototype.write = function(address, data) {
     } else if (address >= 0x8000 && address <= 0xffff) {
         /* writing to mapper chip */
         this.mapper.write(address, data);
+    } else {
+        console.debug("invalid address: " + hex(address));
     }
 }
 
 NESMemoryConfiguration.prototype.read = function(address) {
+    var data;
     /* Work RAM or one of its mirrors */
     if (address >= 0x0000 && address < 0x2000) {
-        return this.work_ram[address % 0x0800];
+        data = this.work_ram[address % 0x0800];
+    } else if (address >= 0x6000 && address < 0x8000) {
+        /* SRAM */
+        data = this.sram[address - 0x6000];
+    } else if (address >= 0x8000 && address <= 0xffff) {
+        /* ROM */
+        data = this.mapper.read(address);
+    } else if (address >= 0x2000 && address < 0x4000) {
+        /* PPU */
+        data = this.ppu.read((address - 0x2000) % 8);
+    } else {
+        console.debug("invalid address: " + hex(address));
     }
-
-    /* SRAM */
-    if (address >= 0x6000 && address < 0x8000) {
-        return this.sram[address - 0x6000];
-    }
-
-    /* ROM */
-    if (address >= 0x8000 && address <= 0xffff) {
-        return this.mapper.read(address);
-    }
-
-    /* PPU */
-    if (address >= 0x2000 && address < 0x4000) {
-        return this.ppu.read((address - 0x2000) % 8);
-    }
+//    buffer_instr("   <-  *(0x" + hex(address) + ") == " + hex(data));
+    return data;
 }
