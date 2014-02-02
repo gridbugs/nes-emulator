@@ -40,6 +40,7 @@ NESPPU.init = function() {
 }
 
 NESPPU.prototype.write = function(offset, data) {
+    buffer_instr("=======================================[ PPU WRITE ]===================================");
     this.registers[offset] = data;
     if (NESPPU.post_write[offset]) {
         NESPPU.post_write[offset].call(this, data);
@@ -47,6 +48,7 @@ NESPPU.prototype.write = function(offset, data) {
 }
 
 NESPPU.prototype.read = function(offset) {
+    buffer_instr("=======================================[ PPU READ ]===================================");
     return NESPPU.read[offset].call(this);
 }
 
