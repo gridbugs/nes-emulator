@@ -56,29 +56,3 @@ NESPPU.prototype.set_status_bit_7 = function() {
     this.registers[NESPPU.PPUSTATUS] |= 1<<7;
 }
 
-NESPPU.prototype.stabalize = function(time, then) {
-    var ppu = this;
-    var set_status_bit_7 = function() {
-        ppu.registers[NESPPU.PPUSTATUS] |= 1<<7;
-    }
-
-    var delayed_pulse = function(rem) {
-
-        switch(rem) {
-        case 2:
-            setTimeout(delayed_pulse, time, 1);
-            break;
-        case 1:
-            set_status_bit_7();
-            setTimeout(delayed_pulse, time, 0);
-            break;
-        case 0:
-            set_status_bit_7();
-            if (then) {
-                then();
-            }
-        }
-    }
-
-    delayed_pulse(2);
-}
