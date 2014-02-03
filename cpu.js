@@ -6,16 +6,19 @@ function CPU() {
     this.y = 0;     // Y Register
     this.ac = 0;    // Accumulator
 
-
-    this.frequency = 1790000; // hertz
-
-    // ms delay
-    this.delay = 0;
-
     this.break_points = [];
 
     this.break_counts = []; // values of this.num_instr on which to break
     this.num_instr = 0; // the number of instructions executed
+
+    /* number of cycles into the current instruction the cpu is.
+     * This is only valid when the 'run' method returns 'midway'
+     * through an instruction. The next instruction will take this
+     * many fewer cycles to execute. If the next instruction
+     * takes fewer than 'partial_complete' cycles in total,
+     * 'partial_complete' is set to itself minus the number
+     * of cycles required for the instruction. */
+    this.partial_complete = 0;
 }
 
 CPU.prototype.add_breakpoint = function(p) {
@@ -148,26 +151,45 @@ CPU.prototype.step = function() {
     Instruction.emulate[instr.instruction].call(this, instr.addressing_mode);
 }
 
-CPU.prototype.start = function() {
-    var cpu = this;
-    var tick = function() {
-        cpu.debug_step();
-        if (cpu.break_points.indexOf(cpu.pc) == -1 &&
-            cpu.break_counts.indexOf(cpu.num_instr) == -1) {
-            setTimeout(tick, cpu.delay);
-        } else {
-            console.debug("breakpoint: " + hex(cpu.pc) + " after " + cpu.num_instr + " instructions");
-        }
-    }
-    tick();
+/* Returns the number of cycles that will be consumed executing the instruction
+ * currently pointed to by the pc (doesn't increment the pc) */
+CPU.prototype.peek_cycle_count = function() {
+    return 3;
 }
 
+
+/* run the cpu for a number of cycles (not instructions) */
 CPU.prototype.run = function(n) {
     while(true) {
-        this.debug_step();
-        if (n != undefined && n-- == 0) {
+
+        /* this represents finishing instructions that were
+         * incomplete last time this method returned */
+        var next_cycle_count = this.peek_cycle_count();
+        if (next_cycle_count < this.partial_complete) {
+            this.partial_complete -= next_cycle_count;
+            next_cycle_count = 0;
+        } else {
+            next_cycle_count -= this.partial_complete;
+            this.partial_complete = 0;
+        }
+
+        /* the appropriate number of cycles have occured (note
+         * that the instruction hasn't been emulated at this point
+         * but we need to do this first in case the instruction
+         * wouldn't have finished in the remaining number of
+         * cycles (and so won't be started in the first place))
+         */
+        n -= next_cycle_count;
+
+        /* if the instruction wouldn't have finished, don't start it */
+        if (n <= 0) {
+            this.partial_complete = -n;
             break;
         }
+
+        /* emulate the instruction */
+        this.debug_step();
+        
         if (!(this.break_points.indexOf(this.pc) == -1 &&
             this.break_counts.indexOf(this.num_instr) == -1)) {
             print_buffer();

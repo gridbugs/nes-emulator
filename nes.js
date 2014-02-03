@@ -49,13 +49,12 @@ NES.prototype.step = function() {
 NES.prototype.run = function() {
     const res = 100;
 
-    this.cpu.run(10);
+    this.cpu.run(40);
     this.cpu.memory.ppu.set_status_bit_7();
-    this.cpu.run(10);
+    this.cpu.run(40);
     this.cpu.memory.ppu.set_status_bit_7();
-
+    
     var cpu = this.cpu;
-
     var tick = function() {
         if(cpu.run(10000)) { 
             setTimeout(tick, res);
