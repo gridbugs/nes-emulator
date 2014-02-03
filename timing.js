@@ -110,18 +110,14 @@ Timer.prototype.tick_interleaved = function() {
         // get the least progressed event
         var least_progressed = progress.remove();
 
-        // progress event by 1 cycle
-        least_progressed.f();
-        least_progressed.progress += least_progressed.period;
-        least_progressed.rem_cycles--;
-
-        // repeat while least_progressed isn't the most progressed
-        while (least_progressed.progress < max_progress) {
+        // repeat until least_progressed is greater than the previous max progressed
+        while (least_progressed.progress <= max_progress) {
             least_progressed.f();
             least_progressed.progress += least_progressed.period;
             least_progressed.rem_cycles--;
         }
 
+        max_progress = least_progressed.progress;
         // if the event isn't complete, re-insert it
         if (least_progressed.rem_cycles > 0) {
             progress.insert(least_progressed);

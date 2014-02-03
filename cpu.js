@@ -151,7 +151,6 @@ CPU.prototype.peek_cycle_count = function() {
     return 3;
 }
 
-
 /* run the cpu for a number of cycles (not instructions) */
 CPU.prototype.run = function(n) {
     while(true) {
