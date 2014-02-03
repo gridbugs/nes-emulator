@@ -11,14 +11,8 @@ function CPU() {
     this.break_counts = []; // values of this.num_instr on which to break
     this.num_instr = 0; // the number of instructions executed
 
-    /* number of cycles into the current instruction the cpu is.
-     * This is only valid when the 'run' method returns 'midway'
-     * through an instruction. The next instruction will take this
-     * many fewer cycles to execute. If the next instruction
-     * takes fewer than 'partial_complete' cycles in total,
-     * 'partial_complete' is set to itself minus the number
-     * of cycles required for the instruction. */
-    this.partial_complete = 0;
+    /* cycles remaining for current instruction */
+    this.rem_cycles = -1;
 }
 
 CPU.prototype.add_breakpoint = function(p) {
@@ -161,16 +155,10 @@ CPU.prototype.peek_cycle_count = function() {
 /* run the cpu for a number of cycles (not instructions) */
 CPU.prototype.run = function(n) {
     while(true) {
-
-        /* this represents finishing instructions that were
-         * incomplete last time this method returned */
-        var next_cycle_count = this.peek_cycle_count();
-        if (next_cycle_count < this.partial_complete) {
-            this.partial_complete -= next_cycle_count;
-            next_cycle_count = 0;
-        } else {
-            next_cycle_count -= this.partial_complete;
-            this.partial_complete = 0;
+        /* if the remaining cycles in unknown, set it to the cycles
+         * of the current instruction */
+        if (this.rem_cycles == -1) {
+            this.rem_cycles = this.peek_cycle_count();
         }
 
         /* the appropriate number of cycles have occured (note
@@ -179,17 +167,17 @@ CPU.prototype.run = function(n) {
          * wouldn't have finished in the remaining number of
          * cycles (and so won't be started in the first place))
          */
-        n -= next_cycle_count;
-
-        /* if the instruction wouldn't have finished, don't start it */
-        if (n <= 0) {
-            this.partial_complete = -n;
+        if (n >= this.rem_cycles) {
+            n -= this.rem_cycles;
+            this.rem_cycles = -1;
+        } else {
+            this.rem_cycles -= n;
             break;
         }
 
         /* emulate the instruction */
         this.debug_step();
-        
+
         if (!(this.break_points.indexOf(this.pc) == -1 &&
             this.break_counts.indexOf(this.num_instr) == -1)) {
             print_buffer();
@@ -197,6 +185,5 @@ CPU.prototype.run = function(n) {
             return false;
         }
     }
-    print_buffer();
     return true;
 }

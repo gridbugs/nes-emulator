@@ -53,14 +53,48 @@ NES.prototype.run = function() {
     this.cpu.memory.ppu.set_status_bit_7();
     this.cpu.run(40);
     this.cpu.memory.ppu.set_status_bit_7();
-    
     var cpu = this.cpu;
+    var timer = new Timer(10);
+    var cpu_cycle = new TimedEvent(function() {
+        if(!cpu.run(1)) {
+            timer.running = false;
+        }
+    }, 1000000);
+
+    var debug_cycle = new TimedEvent(function() {
+        print_buffer();
+    }, 1);
+
+    timer.add_event(cpu_cycle);
+    timer.add_event(debug_cycle);
+//    timer.add_event(ppu_cycle);
+
+    timer.run_interleaved();
+    return;
     var tick = function() {
-        if(cpu.run(10000)) { 
+        if(cpu.run(10000)) {
             setTimeout(tick, res);
         }
     };
 
     tick();
 }
+/*
+ *
 
+    var timer = new Timer(1000);
+    var cpu_cycle = new TimedEvent(function() {
+        if(!cpu.run(1)) {
+            timer.running = false;
+        }
+    }, 100);
+    var ppu_cycle = new TimedEvent(function() {
+
+    }, 300);
+
+    timer.add_event(cpu_cycle);
+//    timer.add_event(ppu_cycle);
+
+    timer.run_interleaved();
+}
+*/

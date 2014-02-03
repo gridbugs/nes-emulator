@@ -28,7 +28,6 @@ Timer.le = function(a, b) {
 
 Timer.prototype.add_event = function(e) {
     var cycles_per_tick = (e.freq*this.resolution)/1000;
-    console.debug(e.freq);
     var ev = {
         f: e.f,
 
@@ -106,7 +105,7 @@ Timer.prototype.tick_interleaved = function() {
     // measured in milliseconds
     var max_progress = 0;
 
-    while(!progress.is_empty()) {
+    while(!progress.is_empty() && this.running) {
 
         // get the least progressed event
         var least_progressed = progress.remove();

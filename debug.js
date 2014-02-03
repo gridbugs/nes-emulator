@@ -70,8 +70,10 @@ function print_instr_to_buffer() {
 }
 
 function print_buffer() {
-    console.debug(Debug.buffer);
-    Debug.buffer = "";
+    if (Debug.buffer != "") {
+        console.debug(Debug.buffer);
+        Debug.buffer = "";
+    }
 }
 
 Debug.init = function() {
