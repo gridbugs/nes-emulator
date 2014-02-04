@@ -24,8 +24,6 @@ $(function() {
         /* connect the nes to the rom */
         if (nes.load_rom(data_arr)) {
 
-            display_rom_bank(nes.rom[7], 0xc000);
-
             /* initialize the emulated device */
             nes.init();
         }
