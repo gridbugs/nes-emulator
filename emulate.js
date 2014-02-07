@@ -4,6 +4,7 @@ function Emulator(){}
 Emulator.init = function() {
     with (AddressingMode) {
 
+
         AddressingMode.pc_incr = [];
         var p = AddressingMode.pc_incr;
         p[IMM] = 1;
@@ -87,6 +88,39 @@ Emulator.init = function() {
             return this.memory.read(addr);
         }
 
+        r[ABS_Y] = function(data) {
+            /* Absolute Indexed with Y:
+             * The value in Y is added to the 2 bytes after the instruction
+             * to compute the address relevant to the instruction.
+             */
+            var addr = this.little_endian_2_byte_at(this.pc) + this.y;
+            return this.memory.read(addr);
+        }
+
+        r[ABS_X] = function(data) {
+            /* Absolute Indexed with X:
+             * The value in X is added to the 2 bytes after the instruction
+             * to compute the address relevant to the instruction.
+             */
+            var addr = this.little_endian_2_byte_at(this.pc) + this.x;
+            return this.memory.read(addr);
+        }
+
+        r[ZP_I_Y] = function(data) {
+            /* Zero Page indirect indexed by Y:
+             * The byte following the instruction is the low byte of an address in
+             * the zero page (so the high byte is zero).
+             * At this address there is the low byte of a second address.
+             * The high byte of this address is stored in the following byte. This
+             * is the relevant address for the instruction.
+             */
+            var i_addr = this.memory.read(this.pc); // indirect address
+            var addr = this.little_endian_2_byte_at(i_addr) + this.y;
+            return this.memory.read(addr);
+        }
+
+
+
 
 
         /* This array will hold functions emulating storing data
@@ -126,6 +160,14 @@ Emulator.init = function() {
             var addr = this.memory.read(this.pc) + this.y;
             this.memory.write(addr, data);
         }
+        w[ZP_X] = function(data) {
+            /* Zero Page indexed by X:
+             * The given address is added to the value in X and the
+             * result desired address.
+             */
+            var addr = this.memory.read(this.pc) + this.x;
+            this.memory.write(addr, data);
+        }
 
         w[ZP_I_Y] = function(data) {
             /* Zero Page indirect indexed by Y:
@@ -146,6 +188,14 @@ Emulator.init = function() {
              * to compute the address relevant to the instruction.
              */
             var addr = this.little_endian_2_byte_at(this.pc) + this.y;
+            this.memory.write(addr, data);
+        }
+        w[ABS_X] = function(data) {
+            /* Absolute Indexed with X:
+             * The value in X is added to the 2 bytes after the instruction
+             * to compute the address relevant to the instruction.
+             */
+            var addr = this.little_endian_2_byte_at(this.pc) + this.x;
             this.memory.write(addr, data);
         }
 
@@ -176,6 +226,7 @@ Emulator.init = function() {
             this.ac = r[am].call(this);
             this.sr_respond(this.ac);
             this.pc += p[am];
+
         }
 
         e[SEI] = function(am) {
@@ -220,12 +271,7 @@ Emulator.init = function() {
             /* BEQ: Jump to the relative address if the zero
              * bit of SR is set
              */
-            var addr = r[am].call(this);
-            if (this.sr & 1<<CPU.SR_ZERO) {
-                this.pc = addr;
-            } else {
-                this.pc += p[am];
-            }
+            this.cond_branch(am, this.sr & 1<<CPU.SR_ZERO);
         }
 
         e[ORA] = function(am) {
@@ -236,6 +282,15 @@ Emulator.init = function() {
             this.sr_respond(this.ac);
             this.pc += p[am];
         }
+        e[EOR] = function(am) {
+            /* EOR: Bitwise exclusive or the accumulator with a value
+             * and store the result in the accumulator
+             */
+            this.ac ^= r[am].call(this);
+            this.sr_respond(this.ac);
+            this.pc += p[am];
+        }
+
 
         e[JSR] = function(am) {
             /* JSR: Jump Subroutine
@@ -303,6 +358,17 @@ Emulator.init = function() {
             this.pc = a[am].call(this);
         }
 
+        e[JMPI] = function(am) {
+            /* JMP (indirect): Indirect Jump
+             *
+             */
+            var adl = this.little_endian_2_byte_at(this.pc);
+            var addr = this.little_endian_2_byte_at(adl);
+            this.pc = addr;
+        }
+
+
+
         e[CMP] = function(am) {
             /* CMP: Compare memory with accumulator
              * This subtracts the value in memory from the accumulator
@@ -321,16 +387,11 @@ Emulator.init = function() {
             /* BEQ: Jump to the relative address if the zero
              * bit of SR is clear
              */
-            var addr = r[am].call(this);
-            if (!(this.sr & 1<<CPU.SR_ZERO)) {
-                this.pc = addr;
-            } else {
-                this.pc += p[am];
-            }
+            this.cond_branch(am, !(this.sr & 1<<CPU.SR_ZERO));
         }
 
         e[LDY] = function(am) {
-            /* LDX: Load a value into X */
+            /* LDY: Load a value into X */
             this.y = r[am].call(this);
             this.sr_respond(this.y);
             this.pc += p[am];
@@ -344,13 +405,14 @@ Emulator.init = function() {
         e[ADC] = function(am) {
             /* ADC: Add value in memory to the accumulator with carry
              */
-            this.ac += twos_complement_8(r[am].call(this));
-            if (this.sr & 1<<CPU.SR_CARRY) {
+            this.ac += r[am].call(this);
+            if (this.sr & (1<<CPU.SR_CARRY)) {
                 this.ac++;
             }
 
             /* updated flags:
              * carry is set iff the sum exceeds 255 or a decimal add exceeds 99 */
+            buffer_instr("\nACC: " + this.ac + "\n");
             this.sr_assign(((this.sr & 1<<CPU.SR_DECIMAL) && (this.ac > 99)) || this.ac > 255, CPU.SR_CARRY);
 
             /* overflow is set iff the result exceeds 127 or is less than -128 */
@@ -359,11 +421,7 @@ Emulator.init = function() {
             /* it makes sense to crop the result to 1 byte here */
             this.ac = to_twos_complement_8(this.ac);
 
-            /* negavite flag is set if the result has bit 7 set */
-            this.sr_assign(this.ac & 1<<7, CPU.SR_NEGATIVE);
-
-            /* zero flag is set if the result is zero */
-            this.sr_assign(this.ac == 0, CPU.SR_ZERO);
+            this.sr_respond(this.ac);
 
             this.pc += p[am];
         }
@@ -376,7 +434,7 @@ Emulator.init = function() {
         e[DEY] = function(am) {
             /* DEY: Decrement the value in y */
             this.y = to_twos_complement_8(this.y - 1);
-            
+
             buffer_instr(" Y = " + this.y);
 
             this.sr_assign(this.y == 0, CPU.SR_ZERO);
@@ -386,7 +444,7 @@ Emulator.init = function() {
         e[DEX] = function(am) {
             /* DEX: Decrement the value in y */
             this.x = to_twos_complement_8(this.x - 1);
-            
+
             buffer_instr(" X = " + this.x);
 
             this.sr_assign(this.x == 0, CPU.SR_ZERO);
@@ -398,14 +456,27 @@ Emulator.init = function() {
             /* INY: Increment the value in y */
             this.y = to_twos_complement_8(this.y + 1);
 
+            buffer_instr(" Y = " + this.y);
+
             this.sr_assign(this.y == 0, CPU.SR_ZERO);
             this.sr_assign(this.y & 1<<7, CPU.SR_NEGATIVE);
         }
 
+        e[INX] = function(am) {
+            /* INX: Increment the value in x */
+            this.x = to_twos_complement_8(this.x + 1);
+
+            buffer_instr(" X = " + this.x);
+
+            this.sr_assign(this.x == 0, CPU.SR_ZERO);
+            this.sr_assign(this.x & 1<<7, CPU.SR_NEGATIVE);
+        }
+
+
 
         e[CPY] = function(am) {
-            /* CMP: Compare memory with accumulator
-             * This subtracts the value in memory from the accumulator
+            /* CMP: Compare memory with y
+             * This subtracts the value in memory from y
              * and adjusts the sr flags as follows (without changing
              * other register).
              */
@@ -419,6 +490,23 @@ Emulator.init = function() {
             this.pc += p[am];
         }
 
+        e[CPX] = function(am) {
+            /* CMP: Compare memory with x
+             * This subtracts the value in memory from x
+             * and adjusts the sr flags as follows (without changing
+             * other register).
+             */
+
+            var result = this.x - r[am].call(this);
+
+            this.sr_assign(result & 1<<7, CPU.SR_NEGATIVE);
+            this.sr_assign(result == 0, CPU.SR_ZERO);
+            this.sr_assign(result >= 0, CPU.SR_CARRY);
+
+            this.pc += p[am];
+        }
+
+
         e[DEC] = function(am) {
             /* DEC: Decrement a value in memory */
             var value = r[am].call(this);
@@ -426,23 +514,28 @@ Emulator.init = function() {
             w[am].call(this, value);
             this.sr_assign(value == 0, CPU.SR_ZERO);
             this.sr_assign(value & 1<<7, CPU.SR_NEGATIVE);
-            buffer_instr("acc = " + this.ac);
             this.pc += p[am];
         }
+        e[INC] = function(am) {
+            /* DEC: Decrement a value in memory */
+            var value = r[am].call(this);
+            value = to_twos_complement_8(value + 1);
+            w[am].call(this, value);
+            this.sr_assign(value == 0, CPU.SR_ZERO);
+            this.sr_assign(value & 1<<7, CPU.SR_NEGATIVE);
+            this.pc += p[am];
+        }
+
 
         e[BCS] = function(am) {
             /* BCS: Branch on carry set
              */
-            var addr = r[am].call(this);
-            if (this.sr & 1<<CPU.SR_CARRY) {
-                this.pc = addr;
-            } else {
-                this.pc += p[am];
-            }
+            this.cond_branch(am, this.sr & 1<<CPU.SR_CARRY);
         }
 
         e[STX] = function(am) {
             /* STX: Store X in memory */
+            buffer_instr("\nSTX!\n");
             w[am].call(this, this.x);
             this.pc += p[am];
         }
@@ -456,13 +549,192 @@ Emulator.init = function() {
         e[BCC] = function(am) {
             /* BCC: Branch on carry clear
              */
-            var addr = r[am].call(this);
-            if (!(this.sr & 1<<CPU.SR_CARRY)) {
-                this.pc = addr;
-            } else {
-                this.pc += p[am];
-            }
+            this.cond_branch(am, !(this.sr & 1<<CPU.SR_CARRY));
         }
+
+        e[BPL] = function(am) {
+            /* BCC: Branch on negative clear
+             */
+            this.cond_branch(am, !(this.sr & 1<<CPU.SR_NEGATIVE));
+        }
+        e[BMI] = function(am) {
+            /* BCC: Branch on negative set
+             */
+            this.cond_branch(am, this.sr & 1<<CPU.SR_NEGATIVE);
+        }
+
+
+        e[PHA] = function(am) {
+            /* PHA: Push Accumulator
+             */
+            this.stack_push(this.ac);
+        }
+
+        e[ASL] = function(am) {
+            /* ASL: Arithmetic Shift Left
+             * Number is shifted one bit to the left. A zero is placed in bit 0.
+             * The initial MSB gets placed in the carry flag.
+             * Negative flag is set if the result has bit 7 set.
+             * Zero flag is set if the result is zero.
+             */
+            var value = r[am].call(this);
+
+            // set the carry flag
+            this.sr_assign(value & 1<<7, CPU.SR_CARRY);
+
+            // left shift
+            value <<= 1;
+
+            // set negative flag
+            this.sr_assign(value & 1<<7, CPU.SR_NEGATIVE);
+
+            // set zero flag
+            this.sr_assign(value == 0, CPU.SR_ZERO);
+
+            // write out value
+            w[am].call(this, value);
+
+            // increment pc
+            this.pc += p[am];
+        }
+
+        e[PLA] = function(am) {
+            /* PLA: Pull Accumulator
+             */
+            this.ac = this.stack_pull();
+            this.sr_assign(this.ac == 0, CPU.SR_ZERO);
+            this.sr_assign(this.ac & 1<<7, CPU.SR_NEGATIVE);
+        }
+
+        e[PHP] = function(am) {
+            /* PHP: Push Status Register
+             */
+            this.stack_push(this.sr);
+        }
+
+        e[PLP] = function(am) {
+            /* PLP: Pull Status Register
+             */
+            this.sr = this.stack_pull();
+        }
+
+        e[ROR] = function(am) {
+            /* ROR: Rotate Right 1 bit through carry bit
+             * Bit 0 is shifted into carry flag.
+             * Carry flag is shifted into bit 7.
+             */
+            var value = r[am].call(this);
+
+            // save the new carry flag
+            var carry = value & 1;
+
+            // right shift
+            value >>= 1;
+
+            // shift in the carry flag
+            if (this.sr & CPU.SR_CARRY) {
+                value |= 1<<7;
+            }
+
+            // set the new carry flag
+            this.sr_assign(carry, CPU.SR_CARRY);
+
+            this.sr_assign(value == 0, CPU.SR_ZERO);
+            this.sr_assign(value & 1<<7, CPU.SR_NEGATIVE);
+
+            w[am].call(this, value);
+
+            // increment pc
+            this.pc += p[am];
+        }
+        e[ROL] = function(am) {
+            /* ROL: Rotate Left 1 bit through carry bit
+             * Bit 7 is shifted into carry flag.
+             * Carry flag is shifted into bit 0.
+             */
+            var value = r[am].call(this);
+
+            // save the new carry flag
+            var carry = value & (1<<7);
+
+            // right shift
+            value <<= 1;
+
+            // shift in the carry flag
+            if (this.sr & CPU.SR_CARRY) {
+                value |= 1;
+            }
+
+            // set the new carry flag
+            this.sr_assign(carry, CPU.SR_CARRY);
+
+            this.sr_assign(value == 0, CPU.SR_ZERO);
+            this.sr_assign(value & 1<<7, CPU.SR_NEGATIVE);
+
+            w[am].call(this, value);
+
+            // increment pc
+            this.pc += p[am];
+        }
+
+
+        e[TAX] = function(am) {
+            /* TAX: Transfer Accumulator into index X
+             */
+            this.x = this.ac;
+            this.sr_assign(this.ac == 0, CPU.SR_ZERO);
+            this.sr_assign(this.ac & 1<<7, CPU.SR_NEGATIVE);
+        }
+        e[TYA] = function(am) {
+            /* TYA: Transfer Y into Accumulator
+             */
+            this.ac = this.y;
+            this.sr_assign(this.ac == 0, CPU.SR_ZERO);
+            this.sr_assign(this.ac & 1<<7, CPU.SR_NEGATIVE);
+        }
+        e[TAY] = function(am) {
+            /* TAY: Transfer Accumulator into index Y
+             */
+            this.y = this.ac;
+            this.sr_assign(this.ac == 0, CPU.SR_ZERO);
+            this.sr_assign(this.ac & 1<<7, CPU.SR_NEGATIVE);
+        }
+        e[TXA] = function(am) {
+            /* TXA: Transfer X into Accumulator
+             */
+            this.ac = this.x;
+            this.sr_assign(this.ac == 0, CPU.SR_ZERO);
+            this.sr_assign(this.ac & 1<<7, CPU.SR_NEGATIVE);
+        }
+
+        e[RTI] = function(am) {
+            /* RTI: Return from interrupt
+             *
+             */
+            this.sr = this.stack_pull();
+            this.set_pcl(this.stack_pull());
+            this.set_pch(this.stack_pull());
+        }
+
+        e[SBC] = function(am) {
+            /* SBC: Subtract with borrow
+             *
+             */
+            this.ac -= r[am].call(this);
+            if (!(this.sr & (1<<CPU.SR_CARRY))) {
+                this.ac--;
+            }
+
+            this.sr_assign(this.ac >= 0, CPU.SR_CARRY);
+            this.sr_assign(this.ac < -127 || this.ac > 127, CPU.SR_OVERFLOW);
+
+            /* it makes sense to crop the result to 1 byte here */
+            this.ac = to_twos_complement_8(this.ac);
+
+            this.sr_respond(this.ac);
+            this.pc += p[am];
+        }
+
 
 
     }

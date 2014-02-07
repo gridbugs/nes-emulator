@@ -10,6 +10,7 @@ function NES() {
 
 /* Initialize data structures to do with the NES */
 NES.init = function() {
+    CPU.init();
     NESPPU.init();
 }
 
@@ -46,9 +47,51 @@ NES.prototype.step = function() {
     this.cpu.step();
 }
 
-NES.prototype.run = function() {
-    const res = 100;
+NES.prototype.test = function() {
+    this.cpu.run(40);
+    this.cpu.memory.ppu.set_status_bit_7();
+    this.cpu.run(40);
+    this.cpu.memory.ppu.set_status_bit_7();
+    this.cpu.run(300000);
+    print_buffer();
+    console.debug("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Sending interrupt");
+    this.cpu.interrupts[CPU.NMI] = true;
 
+    for (var i = 0;i< 3; i++) {
+        if (!this.cpu.run(100000)) {
+            print_buffer();
+            break;
+        }
+
+        print_buffer();
+    }
+    
+    console.debug("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Sending interrupt");
+    this.cpu.interrupts[CPU.NMI] = true;
+
+    for (var i = 0;i< 3; i++) {
+        if (!this.cpu.run(100000)) {
+            print_buffer();
+            break;
+        }
+
+        print_buffer();
+    }
+     console.debug("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Sending interrupt");
+    this.cpu.interrupts[CPU.NMI] = true;
+
+    for (var i = 0;i< 3; i++) {
+        if (!this.cpu.run(100000)) {
+            print_buffer();
+            break;
+        }
+
+        print_buffer();
+    }
+    
+}
+
+NES.prototype.run = function() {
     this.cpu.run(40);
     this.cpu.memory.ppu.set_status_bit_7();
     this.cpu.run(40);
@@ -70,6 +113,6 @@ NES.prototype.run = function() {
 //    timer.add_event(ppu_cycle);
 
     timer.run_interleaved();
-    
+
     this.stop = function() {timer.running = false};
 }

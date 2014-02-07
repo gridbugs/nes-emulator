@@ -42,21 +42,14 @@ function buffer_pc(pc) {
 function buffer_instr(str) {
     Debug.instr_buffer += str;
 }
+function buffer_state(str) {
+    Debug.instr_buffer = (pad_str(Debug.instr_buffer, 30) + str);
+}
 function buffer_args(cpu, am) {
     if (Debug.r[am]) {
         Debug.instr_buffer += " ";
         Debug.r[am](cpu);
     }
-}
-function print_instr() {
-    var str = (Debug.pc + ": (" +
-        pad_str(Debug.encoded + ")", 12) + Debug.instr_buffer);
-
-    display_top(str);
-    console.debug(str);
-    Debug.instr_buffer = "";
-    Debug.pc = "";
-    Debug.encoded = "";
 }
 
 function print_instr_to_buffer() {
@@ -116,9 +109,16 @@ Debug.init = function() {
     }
     Debug.r[AddressingMode.ABS_Y] = function(cpu) {
         Debug.instr_buffer += ("$" + hex(cpu.memory.read(cpu.pc+1)));
-        Debug.instr_buffer += (hex(cpu.memory.read(cpu.pc)));
+        Debug.instr_buffer += (hex(cpu.memory.read(cpu.pc)) + ",Y");
         Debug.encoded += (" " + hex(cpu.memory.read(cpu.pc)));
         Debug.encoded += (" " + hex(cpu.memory.read(cpu.pc+1)));
     }
+    Debug.r[AddressingMode.ABS_X] = function(cpu) {
+        Debug.instr_buffer += ("$" + hex(cpu.memory.read(cpu.pc+1)));
+        Debug.instr_buffer += (hex(cpu.memory.read(cpu.pc)) + ",X");
+        Debug.encoded += (" " + hex(cpu.memory.read(cpu.pc)));
+        Debug.encoded += (" " + hex(cpu.memory.read(cpu.pc+1)));
+    }
+
 
 }

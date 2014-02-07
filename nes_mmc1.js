@@ -26,6 +26,9 @@ MMC1.LOW_PRGROM_AREA = 2;
 MMC1.PRGROM_16K_SWITCHING = 3;
 
 MMC1.prototype.write = function(addr, data) {
+    buffer_instr("\n================================[ MMC1 Write ]=======================\n");
+    buffer_instr("pre-write shift: " + hex(this.shift_reg) + "\n");
+    buffer_instr("writing bit: " + (data&1) + "\n");
     if (data & 1<<7) {
         var idx = (addr>>13)&3;
         this.registers[idx] = 0;
@@ -33,6 +36,7 @@ MMC1.prototype.write = function(addr, data) {
 
         /* this means the shift register is full */
         if (this.shift_reg & 1) {
+            buffer_instr("copying shift register\n");
             var idx = (addr>>13)&3;
             this.registers[idx] = (this.shift_reg >> 1) | ((data&1) << 4);
             this.shift_reg = 0x10;
@@ -43,6 +47,7 @@ MMC1.prototype.write = function(addr, data) {
         }
 
     }
+    buffer_instr("post-write shift: " + hex(this.shift_reg) + "\n");
 }
 
 MMC1.prototype.read = function(addr) {
@@ -63,6 +68,7 @@ MMC1.init = function() {
     MMC1.apply[MMC1.CHRRAM_4K_PAGESELECT] = function(data) {
     }
     MMC1.apply[MMC1.PRGROM_16K_PAGESELECT] = function(data) {
+        buffer_instr("\n==================================[ MMC1 16K Page Select Write: " + data + " ]============\n")
         var low = this.registers[MMC1.CTRL] & (1<<MMC1.LOW_PRGROM_AREA);
         var prgrom_16k = this.registers[MMC1.CTRL] & (1<<MMC1.PRGROM_16K_SWITCHING);
 

@@ -29,7 +29,7 @@ Instruction.init = function() {
         "INC",
         "BIT",
         "JMP",
-        "JMPA", // special case for absolute jump
+        "JMPI", // special case for indirect jump
         "STY",
         "LDY",
         "CPY",
@@ -104,7 +104,7 @@ Instruction.init = function() {
             0: {
                 1: BIT,
                 2: JMP,
-                3: JMPA,
+                3: JMPI,
                 4: STY,
                 5: LDY,
                 6: CPY,
@@ -143,7 +143,7 @@ Instruction.init = function() {
             tmp = [IMM, ZP, ZP_X, ABS_X];
             for (var i in tmp) {
                 w[JMP][tmp[i]] = false;
-                w[JMPA][tmp[i]] = false;
+                w[JMPI][tmp[i]] = false;
             }
             w[STY][IMM] = false;
             w[STY][ABS_X] = false;

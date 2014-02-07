@@ -219,17 +219,17 @@ function ppuctrl_debug(data) {
     } else {
         buffer_instr("off");
     }
-    print_instr("\n");
+    buffer_instr("\n");
 }
 
 NESPPU.prototype.write = function(offset, data) {
-    buffer_instr(" =======================================[ PPU WRITE ]===================================");
+    buffer_instr("\n=======================================[ PPU WRITE ]===================================\n");
     NESPPU.write[offset].call(this, data);
     this.prev_write = data;
 }
 
 NESPPU.prototype.read = function(offset) {
-    buffer_instr(" =======================================[ PPU READ ]===================================");
+    buffer_instr("\n=======================================[ PPU READ ]===================================\n");
     return NESPPU.read[offset].call(this);
 }
 

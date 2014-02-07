@@ -6,6 +6,7 @@ function CPU() {
     this.y = 0;     // Y Register
     this.ac = 0;    // Accumulator
 
+
     this.break_points = [];
 
     this.break_counts = []; // values of this.num_instr on which to break
@@ -13,6 +14,25 @@ function CPU() {
 
     /* cycles remaining for current instruction */
     this.rem_cycles = -1;
+
+    this.interrupt = -1;
+}
+
+/* initialize data structures required to emualte the 6502 */
+CPU.init = function() {
+    enumerate("CPU", [
+        "RESET",
+        "NMI",
+        "BRK",
+        "ABORT",
+        "NUM_INTERRUPTS"
+    ]);
+
+    CPU.interrupt_vector = [];
+    CPU.interrupt_vector[CPU.RESET] = 0xfffc;
+    CPU.interrupt_vector[CPU.NMI] = 0xfffa;
+    CPU.interrupt_vector[CPU.BRK] = 0xfffe;
+    CPU.interrupt_vector[CPU.ABORT] = 0xfff8;
 }
 
 CPU.prototype.add_breakpoint = function(p) {
@@ -116,45 +136,121 @@ CPU.prototype.little_endian_2_byte_at = function(addr) {
  * the program counter.
  */
 CPU.prototype.init = function() {
-    this.pc = this.little_endian_2_byte_at(0xfffc);
+
+    /* contains a flag for each type of interrupt which is
+     * set to true when that interrupt occurs */
+    this.interrupts = new Array(CPU.NUM_INTERRUPTS);
+    for (var i in this.interrupts) {
+        this.interrupts[i] = false;
+    }
+
+    this.pc = this.little_endian_2_byte_at(CPU.interrupt_vector[CPU.RESET]);
 }
 
-CPU.prototype.debug_step = function() {
+CPU.prototype.cond_branch = function(am, cond) {
+    var addr = AddressingMode.read_data[am].call(this);
+    if (cond) {
+        this.pc = addr;
+    } else {
+        this.pc += AddressingMode.pc_incr[am];
+    }
+}
+
+
+CPU.prototype.instr_step = function() {
     buffer_pc(pad_str(this.num_instr, 7) + pad_str(hex(this.pc), 4));
     var opcode = this.memory.read(this.pc++);
     buffer_encoded_instr(hex(opcode));
     //console.debug(opcode);
     var instr = Instruction.decode(opcode);
-    //console.debug(instr);
     buffer_instr(pad_str(AddressingMode.names[instr.addressing_mode], 6) + "   " + Instruction.names[instr.instruction]);
     buffer_args(this, instr.addressing_mode);
 
     if (!Instruction.emulate[instr.instruction]) {
-        print_instr();
+        print_instr_to_buffer();
+        print_buffer();
     }
 
     Instruction.emulate[instr.instruction].call(this, instr.addressing_mode);
+    buffer_state(
+        "ac: " + this.ac +
+        ", *0: " + hex(this.little_endian_2_byte_at(0)) +
+        ", x: " + this.x +
+        ", y: " + this.y +
+        ", carry: " + ((this.sr&(1<<CPU.SR_CARRY))!=0) +
+        ", zero: " + ((this.sr&(1<<CPU.SR_ZERO))!=0) +
+        ", negative: " + ((this.sr&(1<<CPU.SR_NEGATIVE))!=0) +
+        ", int disable: " + ((this.sr&(1<<CPU.SR_INTERRUPT_DISABLE))!=0)
+    );
     print_instr_to_buffer();
     this.num_instr++;
 }
 
+CPU.prototype.interrupt_sequence = function(interrupt) {
+    if (interrupt != CPU.NMI && this.sr & (1<<CPU.SR_INTERRUPT_DISABLE)) {
+        console.debug("ignoring interrupt");
+        return;
+    }
 
-CPU.prototype.step = function() {
-    var opcode = this.memory.read(this.pc++);
-    var instr = Instruction.decode(opcode);
-    Instruction.emulate[instr.instruction].call(this, instr.addressing_mode);
+    buffer_instr("\n\nINTERRUPT RECEIVED\n");
+    buffer_instr("Pushing state onto stack:\n");
+    this.stack_push(this.get_pch());
+    this.stack_push(this.get_pcl());
+    this.stack_push(this.sr);
+    this.pc = this.little_endian_2_byte_at(CPU.interrupt_vector[interrupt]);
+    buffer_instr("\nChanged pc to ");
+    buffer_instr(hex(this.pc));
+    buffer_instr("\nDisabling interrupts\n\n")
+    this.sr_set(CPU.SR_INTERRUPT_DISABLE);
 }
+
+CPU.prototype.debug_step = function() {
+    if (this.interrupt == -1) {
+        this.instr_step();
+    } else {
+        this.interrupt_sequence(this.interrupt);
+    }
+
+    /* after each instruction, check for interrupts. This is done
+     * here rather than at the start of instructions to make
+     * it possible to peek to see the number of cycles the next
+     * instruction/interrupt will take */
+    this.check_for_interrupt();
+}
+
+
 
 /* Returns the number of cycles that will be consumed executing the instruction
  * currently pointed to by the pc (doesn't increment the pc) */
 CPU.prototype.peek_cycle_count = function() {
-    return 3;
+    if (this.interrupt == -1) {
+        return 3; // TODO: make a table of cycles per instruction
+    } else {
+        return 7; // the interrupt sequency is 7 cycles long
+    }
+}
+
+/* Clears one of the interrupts if there are any and sets
+ * 'this.interrupt' to be its index */
+CPU.prototype.check_for_interrupt = function() {
+    /* check for interrupts */
+
+    for (var i = 0;i!=CPU.NUM_INTERRUPTS;++i) {
+        if (this.interrupts[i]) {
+            this.interrupts[i] = false;
+            this.interrupt = i;
+            return;
+        }
+    }
+
+    this.interrupt = -1;
 }
 
 /* run the cpu for a number of cycles (not instructions) */
 CPU.prototype.run = function(n) {
     while(true) {
-        /* if the remaining cycles in unknown, set it to the cycles
+
+        /* if the remaining cycles is unknown, set it to the cycles
          * of the current instruction */
         if (this.rem_cycles == -1) {
             this.rem_cycles = this.peek_cycle_count();
