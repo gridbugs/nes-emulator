@@ -57,7 +57,7 @@ NESMemoryConfiguration.prototype.write = function(address, data) {
         /* writing to mapper chip */
         this.mapper.write(address, data);
     } else {
-        console.debug("invalid address: " + hex(address));
+//        console.debug("invalid address: " + hex(address));
     }
 }
 
@@ -76,7 +76,8 @@ NESMemoryConfiguration.prototype.read = function(address) {
         /* PPU */
         data = this.ppu.read((address - 0x2000) % 8);
     } else {
-        console.debug("invalid address: " + hex(address));
+//        console.debug("invalid address: " + hex(address));
+        data = 0;
     }
 //    buffer_instr("   <-  *(0x" + hex(address) + ") == " + hex(data));
     return data;

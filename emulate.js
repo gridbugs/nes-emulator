@@ -241,6 +241,9 @@ Emulator.init = function() {
 
         e[STA] = function(am) {
             /* STA: Store the Accumulator in memory */
+            if (this.ac == undefined) {
+                console.debug("CCC");
+            }
             w[am].call(this, this.ac);
             this.pc += p[am];
         }
@@ -735,7 +738,10 @@ Emulator.init = function() {
             this.pc += p[am];
         }
 
-
-
+        e[BRK] = function(am) {
+            /* BRK: force interrupt
+             */
+            this.interrupts[CPU.BRK] = true;
+        }
     }
 }

@@ -163,6 +163,7 @@ CPU.prototype.instr_step = function() {
     buffer_encoded_instr(hex(opcode));
     //console.debug(opcode);
     var instr = Instruction.decode(opcode);
+    
     buffer_instr(pad_str(AddressingMode.names[instr.addressing_mode], 6) + "   " + Instruction.names[instr.instruction]);
     buffer_args(this, instr.addressing_mode);
 
@@ -170,8 +171,9 @@ CPU.prototype.instr_step = function() {
         print_instr_to_buffer();
         print_buffer();
     }
-
+    
     Instruction.emulate[instr.instruction].call(this, instr.addressing_mode);
+    
     buffer_state(
         "ac: " + this.ac +
         ", *0: " + hex(this.little_endian_2_byte_at(0)) +

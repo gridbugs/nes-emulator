@@ -69,6 +69,15 @@ function print_buffer() {
     }
 }
 
+function stack_trace() {
+var e = new Error('dummy');
+  var stack = e.stack.replace(/^[^\(]+?[\n$]/gm, '')
+      .replace(/^\s+at\s+/gm, '')
+      .replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@')
+      .split('\n');
+  console.log(stack);
+}
+
 Debug.init = function() {
     /* Has to be called before emulating the instruction */
     Debug.r = [];
@@ -121,4 +130,30 @@ Debug.init = function() {
     }
 
 
+    debug_display = new DebugDisplay("debug", 1);
+}
+var debug_display;
+function DebugDisplay(name, pixel_size) {
+    this.canvas = $("#"+name)[0];
+
+    this.pixel_size = pixel_size == undefined ? 1 : pixel_size;
+
+    this.canvas.width = DebugDisplay.WIDTH * this.pixel_size;
+    this.canvas.height = DebugDisplay.HEIGHT * this.pixel_size;
+
+    this.ctx = this.canvas.getContext("2d");
+}
+
+DebugDisplay.HEIGHT = 16000;
+DebugDisplay.WIDTH = 1400;
+
+DebugDisplay.prototype.set_pixel = function(x, y, colour) {
+    this.ctx.fillStyle = colour;
+    this.ctx.beginPath();
+    this.ctx.fillRect(x * this.pixel_size, y * this.pixel_size, this.pixel_size, this.pixel_size);
+    this.ctx.fill();
+}
+
+DebugDisplay.prototype.clear = function() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 }

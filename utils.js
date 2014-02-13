@@ -1,4 +1,7 @@
 var pad_str = function(str, len) {
+    if (str == undefined) {
+        console.debug("AAA");
+    }
     if (str.constructor != String) {
         str = str.toString();
     }

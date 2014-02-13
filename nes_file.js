@@ -14,6 +14,11 @@ var get_header = function(arr) {
     header.num_vrom_banks = arr[5];
     var byte6 = to_binary_8(arr[6]);
     header.vertical_mirroring = byte6[0] === 1; // 0 for horizontal mirroring
+    if (header.vertical_mirroring) {
+        header.mirroring = NESPPU.VERTICAL;
+    } else {
+        header.mirroring = NESPPU.HORIZONTAL;
+    }
     header.battery_backed_ram = byte6[1] === 1;
     header.trainer = byte6[2] === 1;
     header.four_screen_vram = byte6[3] === 1;
@@ -51,3 +56,19 @@ var get_rom_banks = function(header, arr) {
     return ret;
 }
 
+var get_chrrom_banks = function(header, arr) {
+    const ROM_BANK_SIZE = 16384; // 16Kb
+    const ROM_START = 16;
+    const CHROM_START = ROM_START + ROM_BANK_SIZE * header.num_rom_banks;
+    const CHROM_BANK_SIZE = 8192;
+    var ret = [];
+    for (var i = 0;i!=header.num_vrom_banks;++i) {
+        var idx = CHROM_START + i * CHROM_BANK_SIZE;
+        ret[i] = [];
+        for (var j = 0;j!==CHROM_BANK_SIZE;++j) {
+            ret[i][j] = arr[idx + j];
+        }
+    }
+    return ret;
+
+}

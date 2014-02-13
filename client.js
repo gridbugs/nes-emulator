@@ -1,6 +1,7 @@
 var nes;
 $(function() {
-    load_binary_file("Legend of Zelda.nes", function(data) {
+    //load_binary_file("Legend of Zelda.nes", function(data) {
+    load_binary_file("Donkey Kong.nes", function(data) {
 
         /* decode the file into an array of bytes */
         var data_arr = str_to_ascii(data);
@@ -26,6 +27,9 @@ $(function() {
 
             /* initialize the emulated device */
             nes.init();
+            
+            NESPPU.debug_display_pattern_tables(debug_display.ctx, nes.chrrom[0], 0, 0);
+            
         }
     });
 });
